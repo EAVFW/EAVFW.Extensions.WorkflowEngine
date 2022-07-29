@@ -1,0 +1,26 @@
+{
+	"entities": {
+		"Workflow Run": {
+			"pluralName": "Workflow Runs",
+			"locale": {
+				"1030": {
+					"pluralName": "Arbejdsproces kørsler",
+					"displayName": "Arbejdsproces kørsel"
+				}
+			},
+			"sitemap": "[variables('sitemaps').Administration]",
+			"attributes": {
+				"[merge()]": "[variables('audit')]",
+				"Name": {
+					"isPrimaryField": true
+				},
+				"State": {
+					"type": {
+						"type": "binary",
+						"format": "File"
+					}
+				}
+			}
+		}
+	}
+}
