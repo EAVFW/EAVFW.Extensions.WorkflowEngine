@@ -15,6 +15,12 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{40BDAE75-446F-4028-8914-1E74F0DF3058}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{8A5F38FF-8E16-4AE0-BF4E-C8172969E114}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\.releaserc = .github\workflows\.releaserc
+		.github\workflows\build.yml = .github\workflows\build.yml
+		.github\workflows\release.yml = .github\workflows\release.yml
+		.github\workflows\todo.yml = .github\workflows\todo.yml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
