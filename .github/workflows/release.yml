@@ -45,7 +45,7 @@ jobs:
         run: dotnet clean
 
       - name: Restore NuGet packages
-        run: dotnet restore EAVFW.Extensions.SecurityModel.sln
+        run: dotnet restore EAVFW.Extensions.WorkflowEngine.sln
 
       - name: Package Parser
         run: dotnet pack -c Release -p:PackageVersion=${env:RELEASE_VERSION} -o ./artifacts

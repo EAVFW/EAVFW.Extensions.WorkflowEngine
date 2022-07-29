@@ -22,7 +22,7 @@ jobs:
         run: dotnet clean
 
       - name: Restore NuGet packages
-        run: dotnet restore EAVFW.Extensions.SecurityModel.sln
+        run: dotnet restore EAVFW.Extensions.WorkflowEngine.sln
 
       - name: Build solution
         run: dotnet build -o ../build/ -c Release --no-restore -m:1
