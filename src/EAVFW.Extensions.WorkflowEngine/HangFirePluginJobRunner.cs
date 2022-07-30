@@ -16,9 +16,19 @@ using System.Threading.Tasks;
 
 namespace EAVFW.Extensions.WorkflowEngine
 {
+    public class RecordKeys
+    {
+        public object[] Values { get; set; }
+
+        public override string ToString()
+        {
+           return String.Join(",", Values);
+        }
+    }
     public interface IHangFirePluginJobRunner<TContext> where TContext : DynamicContext
     {
-        Task ExecuteAsync(string entityType, object[] keys, HangFirePluginJobRunnerContext data, PerformContext jobcontext);
+        [JobDisplayName("{2:Handler}: {0}({1})")]
+        Task ExecuteAsync(string entityType, RecordKeys keys, HangFirePluginJobRunnerContext data, PerformContext jobcontext);
     }
 
     public class HangFirePluginJobRunner<TContext> : IHangFirePluginJobRunner<TContext>
@@ -35,7 +45,7 @@ namespace EAVFW.Extensions.WorkflowEngine
         }
 
         [JobDisplayName("{2:Handler}: {0}({1})")]
-        public async Task ExecuteAsync(string entityType, object[] keys, HangFirePluginJobRunnerContext data, PerformContext jobcontext)
+        public async Task ExecuteAsync(string entityType, RecordKeys keys, HangFirePluginJobRunnerContext data, PerformContext jobcontext)
         {  
             using (_logger.BeginScope(new Dictionary<string, string>()
             {
@@ -54,12 +64,10 @@ namespace EAVFW.Extensions.WorkflowEngine
                     var db = _serviceProvider.GetRequiredService<EAVDBContext<TContext>>();
                     
                     var entryTypeMetadata = db.Context.Model.FindEntityType(db.Context.GetEntityType(entityType).FullName);
-                    var typedKeys= entryTypeMetadata.FindPrimaryKey().Properties.Select((p,i)=> ConvertType(keys[i],p.ClrType)).ToArray();
+                    var typedKeys= entryTypeMetadata.FindPrimaryKey().Properties.Select((p,i)=> ConvertType(keys.Values[i],p.ClrType)).ToArray();
                      
-                    var record = await db.FindAsync(entityType, typedKeys);
-                    var entry = db.Context.Entry(record);
-
-                    var ctx = await data.ExecuteAsync<TContext>(_serviceProvider, db, entry);
+                    var entry = await db.FindAsync(entityType, typedKeys);
+                    var ctx = await data.ExecuteAsync(_serviceProvider, db, entry);
 
                     if (ctx.Errors.Any())
                     {

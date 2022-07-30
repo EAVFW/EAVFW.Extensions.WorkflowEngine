@@ -53,7 +53,7 @@ namespace EAVFW.Extensions.WorkflowEngine
             _logger.LogDebug("Scheduling async plugin for {@asyncContext}", asyncContext);
            
             var id = _backgroundJobClient.Enqueue<IHangFirePluginJobRunner<TContext>>(k =>
-                    k.ExecuteAsync(collectionSchemaName,  keys, asyncContext, null));
+                    k.ExecuteAsync(collectionSchemaName, new RecordKeys { Values = keys }, asyncContext, null));
 
             _logger.LogInformation("Async plugin scheduled for {@asyncContext} with {id}", asyncContext, id);
              
