@@ -32,6 +32,9 @@ namespace EAVFW.Extensions.WorkflowEngine
         [JobDisplayName("{2:Handler}: {0}({1})")]
         public async Task ExecuteAsync(string entityType, object[] keys, HangFirePluginJobRunnerContext data, PerformContext jobcontext)
         {
+            
+           // var keys = entry.Metadata.FindPrimaryKey().Properties.Select(p => p.PropertyInfo.GetValue(entity)).ToArray();
+
             using (_logger.BeginScope(new Dictionary<string, string>()
             {
                 ["JobId"] = jobcontext.BackgroundJob.Id,
@@ -48,8 +51,10 @@ namespace EAVFW.Extensions.WorkflowEngine
                     _logger.LogInformation("Starting execution of async plugin");
 
                     var db = _serviceProvider.GetRequiredService<EAVDBContext<TContext>>();
+                    var entryType = db.Context.Model.FindEntityType(db.Context.GetEntityType(entityType).GetCustomAttribute<EntityAttribute>().SchemaName);
+                    var typedKeys= entryType.FindPrimaryKey().Properties.Select((p,i)=> ConvertType(keys[i],p.ClrType)).ToArray();
                      
-                    var record = await db.FindAsync(entityType,keys);
+                    var record = await db.FindAsync(entityType, typedKeys);
                     var entry = db.Context.Entry(record);
 
                     var ctx = await data.ExecuteAsync<TContext>(_serviceProvider, db, entry);
@@ -57,9 +62,7 @@ namespace EAVFW.Extensions.WorkflowEngine
                     if (ctx.Errors.Any())
                     {
                         _logger.LogWarning("Plugin ran with errors: {errors}", string.Join(",", ctx.Errors.Select(err => err.Code)));
-                    }
-
-
+                    } 
 
                 }
                 catch (Exception ex)
@@ -73,6 +76,18 @@ namespace EAVFW.Extensions.WorkflowEngine
 
                 }
             }
+        }
+
+        private object ConvertType(object v, Type clrType)
+        {
+            switch (v)
+            {
+                case string str when clrType == typeof(Guid):
+                    return Guid.Parse(str);
+
+            }
+
+            return v;
         }
     }
 }
