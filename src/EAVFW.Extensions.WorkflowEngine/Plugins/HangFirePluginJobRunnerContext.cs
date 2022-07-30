@@ -14,7 +14,7 @@ namespace EAVFW.Extensions.WorkflowEngine
     {
         static HangFirePluginJobRunnerContext()
         {
-            ExecuteAsyncMethod = typeof(HangFirePluginJobRunnerContext).GetMethods().Single(m => m.IsGenericMethod && m.Name == nameof(HangFirePluginJobRunnerContext.ExecuteAsync));
+            ExecuteAsyncMethod = typeof(HangFirePluginJobRunnerContext).GetMethods().Single(m => m.IsGenericMethod && m.GetGenericArguments().Length == 2 && m.Name == nameof(HangFirePluginJobRunnerContext.ExecuteAsync));
         }
 
         public static MethodInfo ExecuteAsyncMethod { get; }
