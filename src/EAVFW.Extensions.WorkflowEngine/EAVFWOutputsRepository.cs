@@ -12,7 +12,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using WorkflowEngine.Core;
 
-namespace Microsoft.Extensions.DependencyInjection
+namespace EAVFW.Extensions.WorkflowEngine
 {
     public class EAVFWOutputsRepository<TContext, WorkflowRun> : IOutputsRepository
         where TContext: DynamicContext
