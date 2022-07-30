@@ -16,8 +16,13 @@ using System.Threading.Tasks;
 
 namespace EAVFW.Extensions.WorkflowEngine
 {
+    public interface IHangFirePluginJobRunner<TContext> where TContext : DynamicContext
+    {
+        Task ExecuteAsync(string entityType, object[] keys, HangFirePluginJobRunnerContext data, PerformContext jobcontext);
+    }
 
-    public class HangFirePluginJobRunner<TContext> where TContext : DynamicContext
+    public class HangFirePluginJobRunner<TContext> : IHangFirePluginJobRunner<TContext>
+        where TContext : DynamicContext
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<HangFirePluginJobRunner<TContext>> _logger;
@@ -31,10 +36,7 @@ namespace EAVFW.Extensions.WorkflowEngine
 
         [JobDisplayName("{2:Handler}: {0}({1})")]
         public async Task ExecuteAsync(string entityType, object[] keys, HangFirePluginJobRunnerContext data, PerformContext jobcontext)
-        {
-            
-           // var keys = entry.Metadata.FindPrimaryKey().Properties.Select(p => p.PropertyInfo.GetValue(entity)).ToArray();
-
+        {  
             using (_logger.BeginScope(new Dictionary<string, string>()
             {
                 ["JobId"] = jobcontext.BackgroundJob.Id,
@@ -44,15 +46,15 @@ namespace EAVFW.Extensions.WorkflowEngine
                 ["ContextType"] = typeof(TContext).Name
             }))
             {
-
-
+                 
                 try
                 {
                     _logger.LogInformation("Starting execution of async plugin");
 
                     var db = _serviceProvider.GetRequiredService<EAVDBContext<TContext>>();
-                    var entryType = db.Context.Model.FindEntityType(db.Context.GetEntityType(entityType).GetCustomAttribute<EntityAttribute>().SchemaName);
-                    var typedKeys= entryType.FindPrimaryKey().Properties.Select((p,i)=> ConvertType(keys[i],p.ClrType)).ToArray();
+                    
+                    var entryTypeMetadata = db.Context.Model.FindEntityType(db.Context.GetEntityType(entityType).FullName);
+                    var typedKeys= entryTypeMetadata.FindPrimaryKey().Properties.Select((p,i)=> ConvertType(keys[i],p.ClrType)).ToArray();
                      
                     var record = await db.FindAsync(entityType, typedKeys);
                     var entry = db.Context.Entry(record);

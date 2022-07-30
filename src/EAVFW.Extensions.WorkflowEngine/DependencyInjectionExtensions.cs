@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -102,7 +103,10 @@ namespace Microsoft.Extensions.DependencyInjection
 
             services.AddFunctions();
 
+            services.AddTransient(typeof(IHangFirePluginJobRunner<>), typeof(HangFirePluginJobRunner<>));
             services.AddScoped(typeof(IPluginScheduler<>), typeof(HangFirePluginScheduler<>));
+            
+            
             services.AddTransient<IHangFirePluginSchedulerAsyncContextFactory, DefaultHangFirePluginSchedulerAsyncContextFactory>();
             services.AddHangfire((sp, configuration) => SetupConnection(configuration
                 .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
