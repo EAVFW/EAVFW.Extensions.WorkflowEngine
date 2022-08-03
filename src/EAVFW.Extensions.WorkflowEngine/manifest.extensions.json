@@ -1,5 +1,31 @@
 {
 	"entities": {
+		"Workflow": {
+			"pluralName": "Workflows",
+			"locale": {
+				"1030": {
+					"pluralName": "Arbejdsproces",
+					"displayName": "Arbejdsproces"
+				}
+			},
+			"sitemap": "[variables('sitemaps').Administration]",
+			"attributes": {
+				"[merge()]": "[variables('audit')]",
+				"Name": {
+					"isPrimaryField": true
+				},
+				"Manifest": {
+					"type": {
+						"type": "lookup",
+						"referenceType": "Document"
+					}
+				},
+				"Version": {
+					"type": "Text"
+				}
+			}
+		}
+		},
 		"Workflow Run": {
 			"pluralName": "Workflow Runs",
 			"locale": {
