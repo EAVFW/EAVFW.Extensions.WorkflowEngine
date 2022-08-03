@@ -5,6 +5,7 @@ using DotNetDevOps.Extensions.EAVFramework.Endpoints;
 using DotNetDevOps.Extensions.EAVFramework.Plugins;
 using DotNetDevOps.Extensions.EAVFramework.Shared;
 using EAVFW.Extensions.WorkflowEngine;
+using ExpressionEngine;
 using Hangfire;
 using Hangfire.Dashboard;
 using Hangfire.SqlServer;
@@ -81,11 +82,13 @@ namespace Microsoft.Extensions.DependencyInjection
 
         
 
-        public static IEAVFrameworkBuilder AddWorkFlowEngine<TContext, TWorkflowRun>(this IEAVFrameworkBuilder builder)
+        public static IEAVFrameworkBuilder AddWorkFlowEngine<TContext, TWorkflowRun>(this IEAVFrameworkBuilder builder, Func<IGlobalConfiguration, IGlobalConfiguration> configureHangfire = null)
           where TContext : DynamicContext
           where TWorkflowRun : DynamicEntity, IWorkflowRun, new()
         {
             var services = builder.Services;
+
+            services.AddExpressionEngine();
 
             services.AddTransient<IWorkflowExecutor, WorkflowExecutor>();
             services.AddTransient<IActionExecutor, ActionExecutor>();
@@ -108,18 +111,21 @@ namespace Microsoft.Extensions.DependencyInjection
             
             
             services.AddTransient<IHangFirePluginSchedulerAsyncContextFactory, DefaultHangFirePluginSchedulerAsyncContextFactory>();
-            services.AddHangfire((sp, configuration) => SetupConnection(configuration
+
+
+            configureHangfire = configureHangfire ?? NullOp;
+            services.AddHangfire((sp, configuration) => SetupConnection(configureHangfire(configuration
                 .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
                 .UseSimpleAssemblyNameTypeSerializer()
-                .UseRecommendedSerializerSettings(), sp.GetRequiredService<IConfiguration>())
+                .UseRecommendedSerializerSettings()), sp.GetRequiredService<IConfiguration>())
                 );
 
-            
-                services.AddHangfireServer();
+
+            services.AddHangfireServer();
 
             return builder;
         }
-
+        static IGlobalConfiguration NullOp(IGlobalConfiguration config) => config;
         private static void SetupConnection(IGlobalConfiguration globalConfiguration, IConfiguration configuration)
         {
             var options = new SqlServerStorageOptions
