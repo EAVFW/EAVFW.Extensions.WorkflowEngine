@@ -189,22 +189,23 @@ namespace Microsoft.Extensions.DependencyInjection
 
                     }
 
+                    var trigger = new TriggerContext
+                    {
+                        Workflow = workflow,
+                        //  PrincipalId = httpcontext.User.FindFirstValue("sub"),
+                        Trigger = new Trigger
+                        {
+
+                            Inputs = inputs,
+                            ScheduledTime = DateTimeOffset.UtcNow,
+                            Type = workflow.Manifest.Triggers.FirstOrDefault().Value.Type,
+                            Key = workflow.Manifest.Triggers.FirstOrDefault().Key
+                        },
+                    };
                     workflow.Manifest = null;
 
-                    var job = backgroundJobClient.Enqueue<IHangfireWorkflowExecutor>((executor) => executor.TriggerAsync(
-                       new TriggerContext
-                       {
-                           Workflow = workflow,
-                           PrincipalId = httpcontext.User.FindFirstValue("sub"),
-                           Trigger = new Trigger
-                           {
-
-                               Inputs = inputs,
-                               ScheduledTime = DateTimeOffset.UtcNow,
-                               Type = workflow.Manifest.Triggers.FirstOrDefault().Value.Type,
-                               Key = workflow.Manifest.Triggers.FirstOrDefault().Key
-                           },
-                       }));
+                    var job = backgroundJobClient.Enqueue<IHangfireWorkflowExecutor>(
+                        (executor) => executor.TriggerAsync(trigger));
 
                     await httpcontext.Response.WriteJsonAsync(new { id = job });
 
@@ -231,7 +232,7 @@ namespace Microsoft.Extensions.DependencyInjection
             services.AddTransient<IHangfireActionExecutor, HangfireWorkflowExecutor>();
             services.AddSingleton<IWorkflowRepository, DefaultWorkflowRepository>();
             services.AddTransient(typeof(ScheduledWorkflowTrigger<>));
-
+            services.AddTransient<IWorkflowAccessor, DefaultWorkflowAccessor>();
         
             services.AddScoped<IArrayContext, ArrayContext>();
             services.AddScoped<IScopeContext, ScopeContext>();
