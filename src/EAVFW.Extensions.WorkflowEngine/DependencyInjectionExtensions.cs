@@ -142,14 +142,14 @@ namespace Microsoft.Extensions.DependencyInjection
                     var workflowname = httpcontext.GetRouteValue("workflowId") as string;
 
                     var type = context.Context.GetEntityType(entityName);
-                    var resource= new EAVResource
+                    var resource = new EAVResource
                     {
                         EntityType = type,
                         EntityCollectionSchemaName = type.GetCustomAttribute<EntityAttribute>().CollectionSchemaName
                     };
 
                     var authorize = httpcontext.RequestServices.GetRequiredService<IAuthorizationService>();
-                    var auth = await authorize.AuthorizeAsync(httpcontext.User, resource, 
+                    var auth = await authorize.AuthorizeAsync(httpcontext.User, resource,
                         new RunRecordWorkflowRequirement(entityName, recordId, workflowname));
 
                     if (!auth.Succeeded)
@@ -165,7 +165,7 @@ namespace Microsoft.Extensions.DependencyInjection
                     //Run custom workflow
                     var backgroundJobClient = httpcontext.RequestServices.GetRequiredService<IBackgroundJobClient>();
                     var record = await JToken.ReadFromAsync(new JsonTextReader(new StreamReader(httpcontext.Request.BodyReader.AsStream())));
-                    
+
                     var inputs = new Dictionary<string, object>
                     {
 
@@ -189,16 +189,16 @@ namespace Microsoft.Extensions.DependencyInjection
 
                     }
 
-                   // workflow.Manifest = null;
+                    workflow.Manifest = null;
 
                     var job = backgroundJobClient.Enqueue<IHangfireWorkflowExecutor>((executor) => executor.TriggerAsync(
                        new TriggerContext
                        {
                            Workflow = workflow,
-                           
+                           PrincipalId = httpcontext.User.FindFirstValue("sub"),
                            Trigger = new Trigger
                            {
-                              
+
                                Inputs = inputs,
                                ScheduledTime = DateTimeOffset.UtcNow,
                                Type = workflow.Manifest.Triggers.FirstOrDefault().Value.Type,
@@ -208,7 +208,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
                     await httpcontext.Response.WriteJsonAsync(new { id = job });
 
-                });
+                }).RequireAuthorization();
             }
             return endpoints;
         }
