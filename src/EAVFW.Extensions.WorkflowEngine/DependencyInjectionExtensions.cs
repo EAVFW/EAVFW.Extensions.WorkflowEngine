@@ -39,7 +39,10 @@ namespace Microsoft.Extensions.DependencyInjection
 {
     public static class HangfireExtensions
     {
-        public static IEndpointRouteBuilder MapAuthorizedHangfireDashboard(this IEndpointRouteBuilder endpoints, string url = "/.well-known/jobs", string policyName = "HangfirePolicyName")
+        public static IEndpointRouteBuilder MapAuthorizedHangfireDashboard(
+            this IEndpointRouteBuilder endpoints, 
+            string url = "/.well-known/jobs",
+            string policyName = "HangfirePolicyName")
         {
 
             endpoints.MapHangfireDashboard(url, new DashboardOptions()
@@ -225,21 +228,8 @@ namespace Microsoft.Extensions.DependencyInjection
             var services = builder.Services;
 
             services.AddExpressionEngine();
-
-            services.AddTransient<IWorkflowExecutor, WorkflowExecutor>();
-            services.AddTransient<IActionExecutor, ActionExecutor>();
-            services.AddTransient<IHangfireWorkflowExecutor, HangfireWorkflowExecutor>();
-            services.AddTransient<IHangfireActionExecutor, HangfireWorkflowExecutor>();
-            services.AddSingleton<IWorkflowRepository, DefaultWorkflowRepository>();
-            services.AddTransient(typeof(ScheduledWorkflowTrigger<>));
-            services.AddTransient<IWorkflowAccessor, DefaultWorkflowAccessor>();
-        
-            services.AddScoped<IArrayContext, ArrayContext>();
-            services.AddScoped<IScopeContext, ScopeContext>();
-            services.AddScoped<IRunContextAccessor, RunContextFactory>();
-            services.AddAction<ForeachAction>("Foreach");
-            services.AddScoped<IOutputsRepository, EAVFWOutputsRepository<TContext, TWorkflowRun>>();
-
+            services.AddWorkflowEngine<EAVFWOutputsRepository<TContext,TWorkflowRun>>();
+            
             builder.Services.AddOptions<EAVFWOutputsRepositoryOptions>()
               .Configure(c =>
               {

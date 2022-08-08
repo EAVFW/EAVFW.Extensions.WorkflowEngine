@@ -1,52 +1,51 @@
 {
-	"entities": {
-		"Workflow": {
-			"pluralName": "Workflows",
-			"locale": {
-				"1030": {
-					"pluralName": "Arbejdsproces",
-					"displayName": "Arbejdsproces"
-				}
-			},
-			"sitemap": "[variables('sitemaps').Administration]",
-			"attributes": {
-				"[merge()]": "[variables('audit')]",
-				"Name": {
-					"isPrimaryField": true
-				},
-				"Manifest": {
-					"type": {
-						"type": "lookup",
-						"referenceType": "Document"
-					}
-				},
-				"Version": {
-					"type": "Text"
-				}
-			}
-		}
-		},
-		"Workflow Run": {
-			"pluralName": "Workflow Runs",
-			"locale": {
-				"1030": {
-					"pluralName": "Arbejdsproces kørsler",
-					"displayName": "Arbejdsproces kørsel"
-				}
-			},
-			"sitemap": "[variables('sitemaps').Administration]",
-			"attributes": {
-				"[merge()]": "[variables('audit')]",
-				"Name": {
-					"isPrimaryField": true
-				},
-				"State": {
-					"type": {
-						"type": "binary",
-						"format": "File"
-					}
-				}
-			}
-		}
-	}
+  "entities": {
+    "Workflow": {
+      "pluralName": "Workflows",
+      "locale": {
+        "1030": {
+          "pluralName": "Arbejdsproces",
+          "displayName": "Arbejdsproces"
+        }
+      },
+      "sitemap": "[variables('sitemaps').Administration]",
+      "attributes": {
+        "[merge()]": "[variables('audit')]",
+        "Name": {
+          "isPrimaryField": true
+        },
+        "Manifest": {
+          "type": {
+            "type": "lookup",
+            "referenceType": "Document"
+          }
+        },
+        "Version": {
+          "type": "Text"
+        }
+      }
+    },
+    "Workflow Run": {
+      "pluralName": "Workflow Runs",
+      "locale": {
+        "1030": {
+          "pluralName": "Arbejdsproces kï¿½rsler",
+          "displayName": "Arbejdsproces kï¿½rsel"
+        }
+      },
+      "sitemap": "[variables('sitemaps').Administration]",
+      "attributes": {
+        "[merge()]": "[variables('audit')]",
+        "Name": {
+          "isPrimaryField": true
+        },
+        "State": {
+          "type": {
+            "type": "binary",
+            "format": "File"
+          }
+        }
+      }
+    }
+  }
 }
