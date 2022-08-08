@@ -21,7 +21,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Delegate.WorkflowEngine.Hangfire" Version="3.0.0-dev.9" />
+		<PackageReference Include="Delegate.WorkflowEngine.Hangfire" Version="3.0.0-dev.10" />
 		<PackageReference Include="DotNetDevOps.Extensions.EAVFramework" Version="1.0.155" />
 		<PackageReference Include="EAVFW.Extensions.Documents" Version="1.0.0" />
 		<PackageReference Include="Hangfire.AspNetCore" Version="1.7.30" />
