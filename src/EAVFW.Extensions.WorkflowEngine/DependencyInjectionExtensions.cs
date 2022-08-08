@@ -195,7 +195,7 @@ namespace Microsoft.Extensions.DependencyInjection
                     var trigger = new TriggerContext
                     {
                         Workflow = workflow,
-                        //  PrincipalId = httpcontext.User.FindFirstValue("sub"),
+                        PrincipalId = httpcontext.User?.FindFirstValue("sub"),
                         Trigger = new Trigger
                         {
 
@@ -212,7 +212,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
                     await httpcontext.Response.WriteJsonAsync(new { id = job });
 
-                }).RequireAuthorization();
+                }).WithMetadata(new AuthorizeAttribute("EAVAuthorizationPolicy"));
             }
             return endpoints;
         }
