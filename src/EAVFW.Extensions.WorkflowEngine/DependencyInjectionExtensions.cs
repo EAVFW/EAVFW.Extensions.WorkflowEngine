@@ -221,7 +221,7 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IEAVFrameworkBuilder AddWorkFlowEngine<TContext, TWorkflowRun>(
             this IEAVFrameworkBuilder builder,
             string workflowContextPrincipalId, 
-            Func<IGlobalConfiguration, IGlobalConfiguration> configureHangfire = null)
+            Func<IServiceProvider,IGlobalConfiguration, IGlobalConfiguration> configureHangfire = null)
           where TContext : DynamicContext
           where TWorkflowRun : DynamicEntity, IWorkflowRun, new()
         {
@@ -246,7 +246,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
 
             configureHangfire = configureHangfire ?? NullOp;
-            services.AddHangfire((sp, configuration) => SetupConnection(configureHangfire(configuration
+            services.AddHangfire((sp, configuration) => SetupConnection(configureHangfire(sp,configuration
                 .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
                 .UseSimpleAssemblyNameTypeSerializer()
                 .UseRecommendedSerializerSettings()), sp.GetRequiredService<IConfiguration>())
@@ -257,7 +257,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
             return builder;
         }
-        static IGlobalConfiguration NullOp(IGlobalConfiguration config) => config;
+        static IGlobalConfiguration NullOp(IServiceProvider sp, IGlobalConfiguration config) => config;
         private static void SetupConnection(IGlobalConfiguration globalConfiguration, IConfiguration configuration)
         {
             var options = new SqlServerStorageOptions
