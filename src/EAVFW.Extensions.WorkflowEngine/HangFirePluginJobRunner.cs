@@ -69,6 +69,8 @@ namespace EAVFW.Extensions.WorkflowEngine
                     var entry = await db.FindAsync(entityType, typedKeys);
                     var ctx = await data.ExecuteAsync(_serviceProvider, db, entry);
 
+                    
+
                     if (ctx.Errors.Any())
                     {
                         _logger.LogWarning("Plugin ran with errors: {errors}", string.Join(",", ctx.Errors.Select(err => err.Code)));

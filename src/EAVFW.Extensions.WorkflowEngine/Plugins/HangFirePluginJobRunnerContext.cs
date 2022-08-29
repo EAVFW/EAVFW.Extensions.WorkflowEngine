@@ -49,6 +49,8 @@ namespace EAVFW.Extensions.WorkflowEngine
                 await handler.Execute(pluginContext);
 
 
+            await pluginContext.DB.SaveChangesAsync(pluginContext.User);
+
             return pluginContext;
 
 
