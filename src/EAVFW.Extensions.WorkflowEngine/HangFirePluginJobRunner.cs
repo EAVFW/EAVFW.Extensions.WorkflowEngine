@@ -76,7 +76,7 @@ namespace EAVFW.Extensions.WorkflowEngine
                     {
                         _logger.LogWarning("Plugin ran with errors: {errors}", string.Join(",", ctx.Errors.Select(err => err.Code)));
 
-                        throw new InvalidOperationException("Plugin failed with user errors") { Data = { ["Errors"] = ctx.Errors.ToArray() } };
+                        throw new InvalidOperationException($"Plugin ran with errors: {string.Join(",", ctx.Errors.Select(err => err.Code))}") { Data = { ["Errors"] = ctx.Errors.ToArray() } };
                         
                     } 
 
