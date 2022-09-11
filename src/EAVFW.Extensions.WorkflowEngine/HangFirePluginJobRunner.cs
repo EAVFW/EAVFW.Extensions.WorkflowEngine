@@ -60,6 +60,7 @@ namespace EAVFW.Extensions.WorkflowEngine
                 try
                 {
                     _logger.LogInformation("Starting execution of async plugin");
+                    
 
                     var db = _serviceProvider.GetRequiredService<EAVDBContext<TContext>>();
                     
@@ -74,8 +75,14 @@ namespace EAVFW.Extensions.WorkflowEngine
                     if (ctx.Errors.Any())
                     {
                         _logger.LogWarning("Plugin ran with errors: {errors}", string.Join(",", ctx.Errors.Select(err => err.Code)));
+                         
+                        throw new InvalidOperationException("Plugin failed with user errors");
                     } 
 
+                }catch(InvalidOperationException)
+                {
+                    jobcontext.SetJobParameter("RetryCount", 999);
+                    throw;
                 }
                 catch (Exception ex)
                 {
