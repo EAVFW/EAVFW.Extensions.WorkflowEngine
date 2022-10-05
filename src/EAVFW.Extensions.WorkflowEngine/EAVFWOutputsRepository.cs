@@ -1,6 +1,6 @@
 ﻿
-using DotNetDevOps.Extensions.EAVFramework;
-using DotNetDevOps.Extensions.EAVFramework.Endpoints;
+using EAVFramework;
+using EAVFramework.Endpoints;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;

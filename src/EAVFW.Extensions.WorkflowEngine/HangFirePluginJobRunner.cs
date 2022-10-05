@@ -1,7 +1,7 @@
-﻿using DotNetDevOps.Extensions.EAVFramework;
-using DotNetDevOps.Extensions.EAVFramework.Endpoints;
-using DotNetDevOps.Extensions.EAVFramework.Plugins;
-using DotNetDevOps.Extensions.EAVFramework.Shared;
+﻿using EAVFramework;
+using EAVFramework.Endpoints;
+using EAVFramework.Plugins;
+using EAVFramework.Shared;
 using Hangfire;
 using Hangfire.Server;
 using Microsoft.EntityFrameworkCore.ChangeTracking;

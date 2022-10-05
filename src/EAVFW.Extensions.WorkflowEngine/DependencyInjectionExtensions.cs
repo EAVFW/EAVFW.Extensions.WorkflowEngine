@@ -1,12 +1,12 @@
 ﻿
-using DotNetDevOps.Extensions.EAVFramework;
-using DotNetDevOps.Extensions.EAVFramework.Configuration;
-using DotNetDevOps.Extensions.EAVFramework.Endpoints;
-using DotNetDevOps.Extensions.EAVFramework.Endpoints.Results;
-using DotNetDevOps.Extensions.EAVFramework.Extensions;
-using DotNetDevOps.Extensions.EAVFramework.Plugins;
-using DotNetDevOps.Extensions.EAVFramework.Shared;
-using DotNetDevOps.Extensions.EAVFramework.Validation;
+using EAVFramework;
+using EAVFramework.Configuration;
+using EAVFramework.Endpoints;
+using EAVFramework.Endpoints.Results;
+using EAVFramework.Extensions;
+using EAVFramework.Plugins;
+using EAVFramework.Shared;
+using EAVFramework.Validation;
 using EAVFW.Extensions.WorkflowEngine;
 using ExpressionEngine;
 using Hangfire;

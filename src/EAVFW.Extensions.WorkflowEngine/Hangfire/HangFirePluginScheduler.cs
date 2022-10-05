@@ -1,6 +1,6 @@
-﻿using DotNetDevOps.Extensions.EAVFramework;
-using DotNetDevOps.Extensions.EAVFramework.Plugins;
-using DotNetDevOps.Extensions.EAVFramework.Shared;
+﻿using EAVFramework;
+using EAVFramework.Plugins;
+using EAVFramework.Shared;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using System;

@@ -1,6 +1,6 @@
-﻿using DotNetDevOps.Extensions.EAVFramework;
-using DotNetDevOps.Extensions.EAVFramework.Endpoints;
-using DotNetDevOps.Extensions.EAVFramework.Plugins;
+﻿using EAVFramework;
+using EAVFramework.Endpoints;
+using EAVFramework.Plugins;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System;
 using System.Linq;
