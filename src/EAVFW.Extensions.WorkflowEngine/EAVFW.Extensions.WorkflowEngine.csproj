@@ -23,10 +23,10 @@
 	<ItemGroup>
 		<PackageReference Include="Delegate.WorkflowEngine.Hangfire" Version="3.0.0-dev.10" />
 		<PackageReference Include="EAVFramework" Version="1.0.0" />
-		<PackageReference Include="EAVFW.Extensions.Documents" Version="1.0.0" />
-		<PackageReference Include="Hangfire.AspNetCore" Version="1.7.30" />
-		<PackageReference Include="Hangfire.Core" Version="1.7.30" />
-		<PackageReference Include="Hangfire.SqlServer" Version="1.7.30" />
+		<PackageReference Include="EAVFW.Extensions.Documents" Version="2.0.0" />
+		<PackageReference Include="Hangfire.AspNetCore" Version="1.7.31" />
+		<PackageReference Include="Hangfire.Core" Version="1.7.31" />
+		<PackageReference Include="Hangfire.SqlServer" Version="1.7.31" />
 	</ItemGroup>
 
 </Project>
