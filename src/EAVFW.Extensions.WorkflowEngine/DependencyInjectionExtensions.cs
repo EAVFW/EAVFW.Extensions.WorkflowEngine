@@ -270,8 +270,19 @@ namespace Microsoft.Extensions.DependencyInjection
                 SchemaName = configuration.GetValue<string>("DBSchema") ?? "hangfire",
 
             };
+              
+            var connectionstring = configuration.GetConnectionString("ApplicationDB");
+            if (connectionstring.Contains("authentication", StringComparison.OrdinalIgnoreCase))
+            {
+                globalConfiguration.UseSqlServerStorage(() => new Microsoft.Data.SqlClient.SqlConnection(
+        connectionstring), options);
+            }
+            else
+            { 
+                globalConfiguration.UseSqlServerStorage(connectionstring, options);
 
-            var a = globalConfiguration.UseSqlServerStorage(configuration.GetValue<string>("ConnectionStrings:ApplicationDB"), options);
+            }
+
             // JobStorage.Current = a.Entry;
         }
     }
