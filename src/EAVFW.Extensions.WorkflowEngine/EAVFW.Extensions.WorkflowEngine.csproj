@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>netcoreapp3.1;net5.0;net6.0</TargetFrameworks>
+		<TargetFrameworks>netcoreapp3.1;net6.0</TargetFrameworks>
 		 
 		<Nullable>disable</Nullable>
 		<Title>EAVFW.Extensions.WorkflowEngine</Title>
@@ -21,9 +21,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="EAVFramework" Version="2.1.0" />
+		<PackageReference Include="EAVFramework" Version="2.2.0-dev.4" />
 		<PackageReference Include="Delegate.WorkflowEngine.Hangfire" Version="3.0.0-dev.12" />
-		<PackageReference Include="EAVFW.Extensions.Documents" Version="2.0.0" />
+		<PackageReference Include="EAVFW.Extensions.Documents" Version="2.1.0" />
 		<PackageReference Include="Hangfire.AspNetCore" Version="1.7.31" />
 		<PackageReference Include="Hangfire.Core" Version="1.7.31" />
 		<PackageReference Include="Hangfire.SqlServer" Version="1.7.31" />
