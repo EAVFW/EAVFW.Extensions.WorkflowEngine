@@ -41,7 +41,7 @@ namespace EAVFW.Extensions.WorkflowEngine
         where T : DynamicEntity
 
         {
-            var pluginContext = PluginContextFactory.CreateContext<TContext, T>(context, entry, new System.Security.Claims.ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim("sub", IdentityId) }, "eavfw")));
+            var pluginContext = PluginContextFactory.CreateContext<TContext, T>(serviceProvider,context, entry, new System.Security.Claims.ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim("sub", IdentityId) }, "eavfw")));
 
             var handler = serviceProvider.GetService(Handler) as IPlugin<TContext, T>;
             //TODO mix of context types;
