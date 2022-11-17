@@ -16,4 +16,7 @@ plugins:
           label: Binaries
 
   - - "@semantic-release/exec"
+    - publishCmd: "dotnet nuget push ..\\..\\artifacts\\EAVFW.Extensions.WorkflowEngine.*.nupkg --source https://nuget.pkg.github.com/eavfw/index.json --username pksorensen --password ${process.env.GITHUB_TOKEN}"
+
+  - - "@semantic-release/exec"
     - publishCmd: "dotnet nuget push ..\\..\\artifacts\\EAVFW.Extensions.WorkflowEngine.*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${process.env.CI_NUGET_API_KEY}"
