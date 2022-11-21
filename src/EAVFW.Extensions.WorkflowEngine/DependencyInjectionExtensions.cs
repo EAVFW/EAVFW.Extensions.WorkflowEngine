@@ -267,7 +267,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 QueuePollInterval = TimeSpan.Zero,
                 UseRecommendedIsolationLevel = true,
                 DisableGlobalLocks = true,
-                SchemaName = configuration.GetValue<string>("DBSchema") ?? "hangfire",
+                SchemaName = configuration.GetValue<string>("Hangfire:DBSchema") ?? "hangfire",
 
             };
               
