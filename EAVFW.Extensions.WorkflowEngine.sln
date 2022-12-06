@@ -25,6 +25,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{
 		.github\workflows\todo.yml = .github\workflows\todo.yml
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{30C9211E-A719-4C47-9DBA-1CDBAF1F8BAF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EAVFW.Extensions.WorkflowEngine.Tests", "tests\EAVFW.Extensions.WorkflowEngine.Tests\EAVFW.Extensions.WorkflowEngine.Tests.csproj", "{5253724F-6E0C-4C16-A55B-4864BD3519E2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,6 +39,10 @@ Global
 		{93FC4557-8211-45CC-8D58-FA1617F0DFF7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{93FC4557-8211-45CC-8D58-FA1617F0DFF7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{93FC4557-8211-45CC-8D58-FA1617F0DFF7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5253724F-6E0C-4C16-A55B-4864BD3519E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5253724F-6E0C-4C16-A55B-4864BD3519E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5253724F-6E0C-4C16-A55B-4864BD3519E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5253724F-6E0C-4C16-A55B-4864BD3519E2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -42,6 +50,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{93FC4557-8211-45CC-8D58-FA1617F0DFF7} = {7F414B03-BEC1-4B28-8BDF-3F0445CA0E50}
 		{8A5F38FF-8E16-4AE0-BF4E-C8172969E114} = {40BDAE75-446F-4028-8914-1E74F0DF3058}
+		{5253724F-6E0C-4C16-A55B-4864BD3519E2} = {30C9211E-A719-4C47-9DBA-1CDBAF1F8BAF}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {043FA3C9-A13A-432C-B755-588F447F1179}
