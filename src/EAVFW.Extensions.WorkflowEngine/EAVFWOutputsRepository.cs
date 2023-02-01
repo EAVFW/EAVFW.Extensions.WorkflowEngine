@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -38,8 +39,10 @@ namespace EAVFW.Extensions.WorkflowEngine
             JToken run = await GetOrCreateRun(context);
 
             var obj = GetOrCreateStateObject(action.Key, run);
-
-            obj.Merge(JToken.FromObject(new { status = result.Status, body = result.Result, failedReason = result.FailedReason }));
+            obj["status"] = result.Status;            
+            obj["body"] = result.Result == null ? null : JToken.FromObject(result.Result);
+            obj["failedReason"]  =result.FailedReason;
+            //obj.Merge(JToken.FromObject(new { status = result.Status, body = result.Result, failedReason = result.FailedReason }));
 
 
             await SaveState(context.RunId, run);
@@ -263,8 +266,8 @@ namespace EAVFW.Extensions.WorkflowEngine
             JToken run = await GetOrCreateRun(context);
 
             var obj = GetOrCreateStateObject(action.Key, run);
-
-            obj.Merge(JToken.FromObject(new { input = action.Inputs }));
+            obj["input"] = JToken.FromObject(action.Inputs?? new Dictionary<string,object>());
+         //   obj.Merge(JToken.FromObject(new { input = action.Inputs }));
 
             await SaveState(context.RunId, run);
         }

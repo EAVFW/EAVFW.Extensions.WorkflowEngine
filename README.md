@@ -3,7 +3,7 @@
 
 
 ```
-dotnet tool eavfw-manifest install EAVFW.Extensions.WorkflowEngine
+dotnet tool run eavfw-manifest install EAVFW.Extensions.WorkflowEngine
 ```
 
 
@@ -42,3 +42,7 @@ RegistereRibbonButton("RUN_REMOTE_WORKFLOW", ({ key, ...props }) => {
 });
 
 ```
+
+## Changelog
+
+(12/6/2022) - Bug on forloop payload fixed
