@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFrameworks>netcoreapp3.1;net6.0</TargetFrameworks>
@@ -21,7 +21,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="EAVFramework" Version="2.3.1-dev.6" />
+		<PackageReference Include="EAVFramework" Version="2.3.1" />
 		<PackageReference Include="Delegate.WorkflowEngine.Hangfire" Version="3.0.1-dev.2" />
 		<PackageReference Include="EAVFW.Extensions.Documents" Version="3.0.0" />
 		<PackageReference Include="Hangfire.AspNetCore" Version="1.8.5" />
