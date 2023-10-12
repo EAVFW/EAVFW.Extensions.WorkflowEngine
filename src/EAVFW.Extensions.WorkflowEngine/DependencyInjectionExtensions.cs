@@ -30,10 +30,12 @@ using System.Reflection;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using WorkflowEngine;
 using WorkflowEngine.Core;
 using WorkflowEngine.Core.Actions;
 using WorkflowEngine.Core.Expressions;
+using JsonSerializer = Newtonsoft.Json.JsonSerializer;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -119,10 +121,10 @@ namespace Microsoft.Extensions.DependencyInjection
     {
 
 
-        public static IEndpointRouteBuilder MapWorkFlowEndpoints<TContext>(
+        public static IEndpointRouteBuilder MapWorkFlowEndpoints<TContext, TWorkflowRun>(
             this IEndpointRouteBuilder endpoints, bool includeListWorkflows=false,
             bool includeStartWorkflow=false)
-            where TContext:DynamicContext
+            where TContext:DynamicContext where TWorkflowRun:DynamicEntity,IWorkflowRun
         {
             if (includeListWorkflows)
             {
@@ -210,12 +212,57 @@ namespace Microsoft.Extensions.DependencyInjection
                     var job = backgroundJobClient.Enqueue<IHangfireWorkflowExecutor>(
                         (executor) => executor.TriggerAsync(trigger));
 
+                    // returner workflow run id, det er det vi kan query
                     await httpcontext.Response.WriteJsonAsync(new { id = job });
 
                 }).WithMetadata(new AuthorizeAttribute("EAVAuthorizationPolicy"));
             }
+            
+            // Kig på options
+            if (true)
+            {
+                // Eller entities path fra ovenover
+                // quick form project
+                endpoints.MapGet("/api/jobs/{jobId}", async context =>
+                {
+                    var routeJobId = context.GetRouteValue("jobId") as string;
+                    if (!Guid.TryParse(routeJobId, out var jobId))
+                    {
+                        context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                        await context.Response.WriteAsync($"'{routeJobId}' is not a valid guid");
+                        return;
+                    }
+
+                    var db = context.RequestServices.GetRequiredService<EAVDBContext<TContext>>();
+
+                    var workflowRun = await db.Set<TWorkflowRun>().FindAsync(jobId);
+
+                    if (workflowRun == null)
+                    {
+                        await new NotFoundResult().ExecuteAsync(context);
+                        return;
+                    }
+
+                    var status = (await GetState(workflowRun)).SelectToken("$.status")!.ToObject<string>();
+                    
+                    await new DataEndpointResult(new { status }).ExecuteAsync(context);
+                });
+                
+            }
+            
             return endpoints;
         }
+
+        private static async Task<JObject> GetState(IWorkflowRun run)
+        {
+            using var tinyStream = new JsonTextReader(
+            new StreamReader(new GZipStream(new MemoryStream(run.State), CompressionMode.Decompress)));
+
+            var serializer = JsonSerializer.CreateDefault();
+            return serializer.Deserialize<JObject>(tinyStream);
+        }
+        
+        
 
 
         public static IEAVFrameworkBuilder AddWorkFlowEngine<TContext, TWorkflowRun>(

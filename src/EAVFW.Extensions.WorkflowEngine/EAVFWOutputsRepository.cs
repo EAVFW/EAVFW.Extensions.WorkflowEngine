@@ -42,10 +42,10 @@ namespace EAVFW.Extensions.WorkflowEngine
             obj["status"] = result.Status;            
             obj["body"] = result.Result == null ? null : JToken.FromObject(result.Result);
             obj["failedReason"]  =result.FailedReason;
-            //obj.Merge(JToken.FromObject(new { status = result.Status, body = result.Result, failedReason = result.FailedReason }));
+            obj.Merge(JToken.FromObject(new { status = result.Status, body = result.Result, failedReason = result.FailedReason }));
 
 
-            await SaveState(context.RunId, run);
+            await SaveState(context.RunId, obj);
 
         }
 
