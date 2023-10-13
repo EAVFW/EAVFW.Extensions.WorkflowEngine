@@ -244,6 +244,21 @@ namespace EAVFW.Extensions.WorkflowEngine
             await SaveState(context.RunId, run);
 
         }
+
+        public async ValueTask AddEvent(IRunContext context, IWorkflow workflow, IAction action, Event @event)
+        {
+            // Append events to events
+            var run = await GetOrCreateRun(context);
+            
+            if (run["events"] is not JArray events)
+            {
+                run["events"] = events = new JArray();
+            }
+            events.Add(JToken.FromObject(@event));
+
+            await SaveState(context.RunId, run);
+        }
+
         public async ValueTask StartScope(IRunContext context, IWorkflow workflow, IAction action)
         {
             JToken run = await GetOrCreateRun(context);
@@ -271,8 +286,5 @@ namespace EAVFW.Extensions.WorkflowEngine
 
             await SaveState(context.RunId, run);
         }
-
-
-
     }
 }
