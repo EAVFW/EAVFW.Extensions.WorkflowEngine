@@ -1,4 +1,4 @@
-﻿
+
 using EAVFramework;
 using EAVFramework.Configuration;
 using EAVFramework.Endpoints;
@@ -6,18 +6,14 @@ using EAVFramework.Endpoints.Results;
 using EAVFramework.Extensions;
 using EAVFramework.Plugins;
 using EAVFramework.Shared;
-using EAVFramework.Validation;
 using EAVFW.Extensions.WorkflowEngine;
 using ExpressionEngine;
 using Hangfire;
-using Hangfire.Dashboard;
 using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -28,103 +24,37 @@ using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Security.Claims;
-using System.Text;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using WorkflowEngine;
 using WorkflowEngine.Core;
-using WorkflowEngine.Core.Actions;
-using WorkflowEngine.Core.Expressions;
+using JsonSerializer = Newtonsoft.Json.JsonSerializer;
+using Newtonsoft.Json.Serialization;
+using System.Net.Http;
+using EAVFW.Extensions.WorkflowEngine.Models;
+using System.Xml.Linq;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
-    public static class HangfireExtensions
+    public static class EAVWorkflowExtensions
     {
-        public static IEndpointRouteBuilder MapAuthorizedHangfireDashboard(
-            this IEndpointRouteBuilder endpoints, 
-            string url = "/.well-known/jobs",
-            string policyName = "HangfirePolicyName")
+        public static ClaimsPrincipal GetRunningPrincipal(this IRunContext context)
         {
-
-            endpoints.MapHangfireDashboard(url, new DashboardOptions()
-            {
-                Authorization = new List<IDashboardAuthorizationFilter> { }
-            })
-           .RequireAuthorization(policyName);
-
-
-            return endpoints;
-        }
-        public static AuthorizationOptions AddHangfirePolicy(this AuthorizationOptions options,
-            string policyName = "HangfirePolicyName",
-            string schemaName = "eavfw",
-            string role = "System Administrator")
-        {
-            options.AddPolicy(policyName, pb =>
-            {
-               
-                    pb.AddAuthenticationSchemes(schemaName);
-                    pb.RequireAuthenticatedUser();
-                    pb.RequireClaim("role", role);
-                
-            });
-
-            return options;
-        }
-
-        public static AuthorizationOptions AddHangfireAnonymousPolicy(this AuthorizationOptions options,
-              string policyName = "HangfirePolicyName")
-        {
-            options.AddPolicy(policyName, pb =>
-            {
-                pb.RequireAssertion(c => true);
-            });
-
-            return options;
-        }
-
-    }
-
-    public class RunRecordWorkflowRequirement : IAuthorizationRequirement, IAuthorizationRequirementError
-    {
-        public string RecordId { get; }
-        public string WorkflowName { get; }
-
-        public string EntityCollectionSchemaName { get; }
-        public RunRecordWorkflowRequirement(string entityName, string recordId, string workflowname) 
-        {
-            EntityCollectionSchemaName = entityName;
-            RecordId = recordId;
-            WorkflowName = workflowname;
-        }
-
-       
-
-        public ValidationError ToError()
-        {
-            return new ValidationError
-            {
-                Error = "No permission to run workflow",
-                Code = "NO_RUN_WORKFLOW_PERMISSION",
-                ErrorArgs = new[]
-                {
-                    EntityCollectionSchemaName
-                },
-                EntityCollectionSchemaName = EntityCollectionSchemaName
-
-            };
+            return new ClaimsPrincipal(new ClaimsIdentity(new Claim[] {
+                                   new Claim("sub",context.PrincipalId)
+                                }, EAVFramework.Constants.DefaultCookieAuthenticationScheme));
         }
     }
-
     public static class DependencyInjectionExtensions
     {
-
-
-        public static IEndpointRouteBuilder MapWorkFlowEndpoints<TContext>(
-            this IEndpointRouteBuilder endpoints, bool includeListWorkflows=false,
-            bool includeStartWorkflow=false)
-            where TContext:DynamicContext
+        public static IEndpointRouteBuilder MapWorkFlowEndpoints<TContext, TWorkflowRun>(
+            this IEndpointRouteBuilder endpoints)
+            where TContext : DynamicContext
+            where TWorkflowRun : DynamicEntity, IWorkflowRun, new()
         {
-            if (includeListWorkflows)
+            var options = endpoints.ServiceProvider.GetRequiredService<IOptions<WorkflowEndpointOptions>>();
+            
+            if (options.Value.IncludeListWorkflows)
             {
                 endpoints.MapGet("/api/workflows", async x =>
                 {
@@ -135,8 +65,58 @@ namespace Microsoft.Extensions.DependencyInjection
                 });
             }
 
-            if (includeStartWorkflow)
+            if (options.Value.IncludeStartWorkflow)
             {
+                endpoints.MapPost("/api/workflows/{workflowId}/runs", async httpContext =>
+                {
+                    var workflowName = httpContext.GetRouteValue("workflowId") as string;
+                    
+                    // Security
+                    var authorize = httpContext.RequestServices.GetRequiredService<IAuthorizationService>();
+                    var auth = await authorize.AuthorizeAsync(httpContext.User,
+                        new EavWorkflowResource { WorkflowName = workflowName },
+                        new RunWorkflowRequirement(workflowName));
+
+                    if (!auth.Succeeded)
+                    {
+                        await new AuthorizationEndpointResult(new
+                            {
+                                errors = auth.Failure.FailedRequirements.OfType<IAuthorizationRequirementError>()
+                                    .Select(c => c.ToError())
+                            })
+                            .ExecuteAsync(httpContext);
+                        return;
+                    }
+                    
+                    // Workflow
+                    var workflows = httpContext.RequestServices.GetRequiredService<IEnumerable<IWorkflow>>();
+                    
+                    var record =
+                        await JToken.ReadFromAsync(
+                            new JsonTextReader(new StreamReader(httpContext.Request.BodyReader.AsStream())));
+                    
+                    var inputs = new Dictionary<string, object> { ["data"] = record };
+
+                    var trigger = await BuildTrigger(workflows, workflowName, httpContext.User?.FindFirstValue("sub"), inputs);
+                    
+                    if (trigger == null)
+                    {
+                        httpContext.Response.StatusCode = 404;
+                        return;
+                    }
+                    var context = httpContext.RequestServices.GetRequiredService<EAVDBContext<TContext>>();
+                    context.Add(new TWorkflowRun() { Id = trigger.RunId });
+
+                    await context.SaveChangesAsync(httpContext.User);
+
+                    var backgroundJobClient = httpContext.RequestServices.GetRequiredService<IBackgroundJobClient>();
+                    var job = backgroundJobClient.Enqueue<IHangfireWorkflowExecutor>(
+                        executor => executor.TriggerAsync(trigger,null));
+
+
+                    await httpContext.Response.WriteJsonAsync(new { id= trigger.RunId, job = job });
+                });
+                
                 endpoints.MapPost("/api/entities/{entityName}/records/{recordId}/workflows/{workflowId}/runs", async (httpcontext) =>
                 {
                     var context = httpcontext.RequestServices.GetRequiredService<EAVDBContext<TContext>>();
@@ -157,65 +137,151 @@ namespace Microsoft.Extensions.DependencyInjection
 
                     if (!auth.Succeeded)
                     {
-                        await new AuthorizationEndpointResult(new { errors = auth.Failure.FailedRequirements.OfType<IAuthorizationRequirementError>().Select(c => c.ToError()) })
-                        .ExecuteAsync(httpcontext);
+                        await new AuthorizationEndpointResult(new
+                            {
+                                errors = auth.Failure.FailedRequirements.OfType<IAuthorizationRequirementError>()
+                                    .Select(c => c.ToError())
+                            })
+                            .ExecuteAsync(httpcontext);
 
                         return;
-
                     }
-
 
                     //Run custom workflow
                     var backgroundJobClient = httpcontext.RequestServices.GetRequiredService<IBackgroundJobClient>();
-                    var record = await JToken.ReadFromAsync(new JsonTextReader(new StreamReader(httpcontext.Request.BodyReader.AsStream())));
+                    var record =
+                        await JToken.ReadFromAsync(
+                            new JsonTextReader(new StreamReader(httpcontext.Request.BodyReader.AsStream())));
 
                     var inputs = new Dictionary<string, object>
                     {
-
                         ["entityName"] = entityName,
                         ["recordId"] = recordId,
                         ["data"] = record
-
                     };
 
                     var workflows = httpcontext.RequestServices.GetRequiredService<IEnumerable<IWorkflow>>();
 
+                    var trigger = await BuildTrigger(workflows, workflowname, httpcontext.User?.FindFirstValue("sub"), inputs);
 
+                    context.Add(new TWorkflowRun() { Id=trigger.RunId });
 
-                    var workflow = workflows.FirstOrDefault(n => n.Id.ToString() == workflowname || string.Equals(n.GetType().Name, workflowname, StringComparison.OrdinalIgnoreCase));
-
-
-                    if (workflow == null)
-                    {
-                        httpcontext.Response.StatusCode = 404;
-                        return;
-
-                    }
-
-                    var trigger = new TriggerContext
-                    {
-                        Workflow = workflow,
-                        PrincipalId = httpcontext.User?.FindFirstValue("sub"),
-                        Trigger = new Trigger
-                        {
-
-                            Inputs = inputs,
-                            ScheduledTime = DateTimeOffset.UtcNow,
-                            Type = workflow.Manifest.Triggers.FirstOrDefault().Value.Type,
-                            Key = workflow.Manifest.Triggers.FirstOrDefault().Key
-                        },
-                    };
-                    workflow.Manifest = null;
+                    await context.SaveChangesAsync(httpcontext.User);
 
                     var job = backgroundJobClient.Enqueue<IHangfireWorkflowExecutor>(
-                        (executor) => executor.TriggerAsync(trigger));
+                        (executor) => executor.TriggerAsync(trigger,null));
 
-                    await httpcontext.Response.WriteJsonAsync(new { id = job });
-
+                    await httpcontext.Response.WriteJsonAsync(new { id = trigger.RunId, job = job });
                 }).WithMetadata(new AuthorizeAttribute("EAVAuthorizationPolicy"));
             }
+            
+            if (options.Value.IncludeWorkflowState)
+            {
+                endpoints.MapGet("/api/workflowruns/{workflowRunId}/status", async context =>
+                    await ApiWorkflowsEndpoint<TContext, TWorkflowRun>(context, true));
+
+                endpoints.MapGet("/api/workflowruns/{workflowRunId}",
+                    async context => await ApiWorkflowsEndpoint<TContext, TWorkflowRun>(context));
+
+                endpoints.MapGet("/api/workflows/{workflowId}/runs/{workflowRunId}",
+                    async context => await ApiWorkflowsEndpoint<TContext, TWorkflowRun>(context));
+
+                endpoints.MapGet("/api/workflows/{workflowId}/runs/{workflowRunId}/status",
+                   async context => await ApiWorkflowsEndpoint<TContext, TWorkflowRun>(context,true));
+
+
+            }
+            
             return endpoints;
         }
+
+        private static async Task ApiWorkflowsEndpoint<TContext, TWorkflowRun>(HttpContext context, bool statusOnly = false) where TContext : DynamicContext
+            where TWorkflowRun : DynamicEntity, IWorkflowRun
+        {
+            var routeJobId = context.GetRouteValue("workflowRunId") as string;
+            if (!Guid.TryParse(routeJobId, out var jobId))
+            {
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                await context.Response.WriteAsync($"'{routeJobId}' is not a valid guid");
+                return;
+            }
+
+            var db = context.RequestServices.GetRequiredService<EAVDBContext<TContext>>();
+
+            var workflowRun = await db.Set<TWorkflowRun>().FindAsync(jobId);
+
+            if (workflowRun == null)
+            {
+                await new NotFoundResult().ExecuteAsync(context);
+                return;
+            }
+
+            if(workflowRun.State == null)
+            {
+                await new DataEndpointResult(new { completed = false }).ExecuteAsync(context);
+                return;
+            }
+
+            var workflowRunState = await GetState(workflowRun);
+            
+            if (statusOnly)
+            {
+                var completed = workflowRunState.Events.Any(x => x.EventType == EventType.WorkflowFinished);
+                 
+                await new DataEndpointResult(new { completed }).ExecuteAsync(context);
+            }
+            else
+            {
+
+                await new DataEndpointResult(workflowRunState).ExecuteAsync(context);
+            }
+        }
+
+        private static Task<TriggerContext> BuildTrigger(
+            IEnumerable<IWorkflow> workflows,
+            string workflowName,
+            string principalId,
+            Dictionary<string, object> inputs
+            )
+        {
+            var workflow = workflows.FirstOrDefault(n =>
+                n.Id.ToString() == workflowName ||
+                string.Equals(n.GetType().Name, workflowName, StringComparison.OrdinalIgnoreCase));
+
+            if (workflow == null)
+                return null;
+            
+            
+            var trigger = new TriggerContext
+            {
+                RunId = Guid.NewGuid(),
+                Workflow = workflow,
+                PrincipalId = principalId,
+                Trigger = new Trigger
+                {
+                    Inputs = inputs,
+                    ScheduledTime = DateTimeOffset.UtcNow,
+                    Type = workflow.Manifest.Triggers.FirstOrDefault().Value.Type,
+                    Key = workflow.Manifest.Triggers.FirstOrDefault().Key
+                },
+            };
+            workflow.Manifest = null;
+
+            return Task.FromResult( trigger);
+        }
+
+        private static Task<WorkflowState> GetState(IWorkflowRun run)
+        {
+            using var tinyStream = new JsonTextReader(
+            new StreamReader(new GZipStream(new MemoryStream(run.State), CompressionMode.Decompress)));
+
+            var serializer = JsonSerializer.CreateDefault(new JsonSerializerSettings { 
+                ContractResolver = new CamelCasePropertyNamesContractResolver(), 
+                NullValueHandling= NullValueHandling.Ignore });
+            return Task.FromResult(serializer.Deserialize<WorkflowState>(tinyStream));
+        }
+        
+        
 
 
         public static IEAVFrameworkBuilder AddWorkFlowEngine<TContext, TWorkflowRun>(
@@ -229,6 +295,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
             services.AddExpressionEngine();
             services.AddWorkflowEngine<EAVFWOutputsRepository<TContext,TWorkflowRun>>();
+            services.AddOptions<WorkflowEndpointOptions>().BindConfiguration("EAVFramework:WorkflowEngine");
             
             builder.Services.AddOptions<EAVFWOutputsRepositoryOptions>()
               .Configure(c =>

@@ -9,6 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EAVFW.Extensions.WorkflowEn
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{B780C380-1007-42F1-9535-507BEC0400BA}"
 	ProjectSection(SolutionItems) = preProject
+		Directory.Build.props = Directory.Build.props
 		README.md = README.md
 	EndProjectSection
 EndProject
@@ -27,7 +28,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{30C9211E-A719-4C47-9DBA-1CDBAF1F8BAF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EAVFW.Extensions.WorkflowEngine.Tests", "tests\EAVFW.Extensions.WorkflowEngine.Tests\EAVFW.Extensions.WorkflowEngine.Tests.csproj", "{5253724F-6E0C-4C16-A55B-4864BD3519E2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EAVFW.Extensions.WorkflowEngine.Tests", "tests\EAVFW.Extensions.WorkflowEngine.Tests\EAVFW.Extensions.WorkflowEngine.Tests.csproj", "{5253724F-6E0C-4C16-A55B-4864BD3519E2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "external", "external", "{EBA5FB55-314C-4E46-83A9-EDF0ACA8A3D4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
