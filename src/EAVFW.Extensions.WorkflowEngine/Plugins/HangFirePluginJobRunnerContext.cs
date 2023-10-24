@@ -1,4 +1,4 @@
-﻿using EAVFramework;
+using EAVFramework;
 using EAVFramework.Endpoints;
 using EAVFramework.Plugins;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -24,7 +24,7 @@ namespace EAVFW.Extensions.WorkflowEngine
         public string IdentityId { get; set; }
         public Type Handler { get; set; }
         public string SchemaName { get; set; }
-
+        public EntityPlugin Plugin { get;  set; }
 
         public async Task<PluginContext> ExecuteAsync<TContext>(IServiceProvider serviceProvider, EAVDBContext<TContext> context, EntityEntry entry)
          where TContext : DynamicContext

@@ -1,4 +1,4 @@
-﻿using EAVFramework;
+using EAVFramework;
 using EAVFramework.Plugins;
 using EAVFramework.Shared;
 using Hangfire;
@@ -45,6 +45,7 @@ namespace EAVFW.Extensions.WorkflowEngine
             var asyncContext = await _contextFactory.CreateContextAsync();
 
             asyncContext.IdentityId = identityid;
+            asyncContext.Plugin = plugin;
             asyncContext.Handler = plugin.Handler;
 
             var collectionSchemaName = entry.Entity.GetType().GetCustomAttribute<EntityAttribute>().CollectionSchemaName;
