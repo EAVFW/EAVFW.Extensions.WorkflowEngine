@@ -228,7 +228,7 @@ namespace Microsoft.Extensions.DependencyInjection
             {
                 var completed = workflowRunState.Events.Any(x => x.EventType == EventType.WorkflowFinished);
                  
-                await new DataEndpointResult(new { completed }).ExecuteAsync(context);
+                await new DataEndpointResult(new { completed, body=workflowRunState.Body, failedreason = workflowRunState.FailedReason }).ExecuteAsync(context);
             }
             else
             {
