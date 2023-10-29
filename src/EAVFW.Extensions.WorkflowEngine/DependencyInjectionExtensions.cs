@@ -244,9 +244,7 @@ namespace Microsoft.Extensions.DependencyInjection
             Dictionary<string, object> inputs
             )
         {
-            var workflow = workflows.FirstOrDefault(n =>
-                n.Id.ToString() == workflowName ||
-                string.Equals(n.GetType().Name, workflowName, StringComparison.OrdinalIgnoreCase));
+            var workflow = workflows.FirstOrDefault(n => string.Equals(n.Id.ToString(), workflowname, StringComparison.OrdinalIgnoreCase) || string.Equals(n.GetType().Name, workflowname, StringComparison.OrdinalIgnoreCase));
 
             if (workflow == null)
                 return null;
