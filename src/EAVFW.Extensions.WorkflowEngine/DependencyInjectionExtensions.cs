@@ -311,7 +311,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
 
             configureHangfire = configureHangfire ?? NullOp;
-            services.AddHangfire((sp, configuration) => SetupConnection(configureHangfire(sp,configuration
+            services.AddHangfire((sp, configuration) => SetupConnection(configureHangfire(sp,configuration.UseFilter(sp.GetService<HangfireWorkflowManifestJobFilter>())
                 .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
                 .UseSimpleAssemblyNameTypeSerializer()
                 .UseRecommendedSerializerSettings()), sp.GetRequiredService<IConfiguration>())
