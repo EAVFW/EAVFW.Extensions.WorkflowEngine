@@ -33,6 +33,9 @@ using Newtonsoft.Json.Serialization;
 using System.Net.Http;
 using EAVFW.Extensions.WorkflowEngine.Models;
 using System.Xml.Linq;
+using EAVFW.Extensions.WorkflowEngine.Endpoints;
+using EAVFW.Extensions.WorkflowEngine.Abstractions;
+using EAVFW.Extensions.Configuration.Forms;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -62,6 +65,59 @@ namespace Microsoft.Extensions.DependencyInjection
                     .Select(x => new { name = x.GetType().Name, id = x.Id })
                     .ToArray();
                     await x.Response.WriteJsonAsync(new { value = workflows });
+                });
+            }
+
+            if (options.Value.IncludeWorkflowMetadata)
+            {
+                endpoints.MapGet("/api/workflows/{workflowId}/metadata", async httpContext =>
+                {
+                    var workflowName = httpContext.GetRouteValue("workflowId") as string;
+
+                    // Security
+                    var authorize = httpContext.RequestServices.GetRequiredService<IAuthorizationService>();
+                    var auth = await authorize.AuthorizeAsync(httpContext.User,
+                        new EavWorkflowResource { WorkflowName = workflowName },
+                        new RunWorkflowRequirement(workflowName));
+
+                    if (!auth.Succeeded)
+                    {
+                        await new AuthorizationEndpointResult(new
+                        {
+                            errors = auth.Failure.FailedRequirements.OfType<IAuthorizationRequirementError>()
+                                    .Select(c => c.ToError())
+                        })
+                            .ExecuteAsync(httpContext);
+                        return;
+                    }
+
+                    // Workflow
+                    var workflows = httpContext.RequestServices.GetRequiredService<IEnumerable<IWorkflow>>();
+                    var workflow = workflows.FirstOrDefault(n => string.Equals(n.Id.ToString(), workflowName, StringComparison.OrdinalIgnoreCase) || string.Equals(n.GetType().Name, workflowName, StringComparison.OrdinalIgnoreCase));
+
+                    var isIInitializable =
+                            workflow.GetType()
+                                   .GetInterfaces()
+                                   .Any(i => i.IsGenericType &&
+                                             i.GetGenericTypeDefinition() == typeof(IWorkflowInputs<>));
+
+                    if (isIInitializable)
+                    {
+                        var t = workflow.GetType()
+                               .GetInterfaces()
+                               .First(i => i.IsGenericType &&
+                                           i.GetGenericTypeDefinition() == typeof(IWorkflowInputs<>))
+                               .GetGenericArguments()
+                               .First();
+
+                        var form = JsonSchemaForm.FromType(t).Build();
+
+                        await httpContext.Response.WriteJsonAsync(form);
+                    }
+                    else
+                    {
+
+                    }
                 });
             }
 
@@ -95,7 +151,7 @@ namespace Microsoft.Extensions.DependencyInjection
                         await JToken.ReadFromAsync(
                             new JsonTextReader(new StreamReader(httpContext.Request.BodyReader.AsStream())));
                     
-                    var inputs = new Dictionary<string, object> { ["data"] = record };
+                    var inputs = new Dictionary<string, object> { ["data"] = record, ["payload"] = record };
 
                     var trigger = await BuildTrigger(workflows, workflowName, httpContext.User?.FindFirstValue("sub"), inputs);
                     
@@ -157,7 +213,8 @@ namespace Microsoft.Extensions.DependencyInjection
                     {
                         ["entityName"] = entityName,
                         ["recordId"] = recordId,
-                        ["data"] = record
+                        ["data"] = record,
+                        ["payload"] = record
                     };
 
                     var workflows = httpcontext.RequestServices.GetRequiredService<IEnumerable<IWorkflow>>();
@@ -263,7 +320,7 @@ namespace Microsoft.Extensions.DependencyInjection
                     Key = workflow.Manifest.Triggers.FirstOrDefault().Key
                 },
             };
-            workflow.Manifest = null;
+            
 
             return Task.FromResult( trigger);
         }
@@ -285,7 +342,7 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IEAVFrameworkBuilder AddWorkFlowEngine<TContext, TWorkflowRun>(
             this IEAVFrameworkBuilder builder,
             string workflowContextPrincipalId, 
-            Func<IServiceProvider,IGlobalConfiguration, IGlobalConfiguration> configureHangfire = null)
+            Func<IServiceProvider,IGlobalConfiguration, IGlobalConfiguration> configureHangfire = null, bool withJobServer=true)
           where TContext : DynamicContext
           where TWorkflowRun : DynamicEntity, IWorkflowRun, new()
         {
@@ -311,14 +368,20 @@ namespace Microsoft.Extensions.DependencyInjection
 
 
             configureHangfire = configureHangfire ?? NullOp;
-            services.AddHangfire((sp, configuration) => SetupConnection(configureHangfire(sp,configuration
+            services.AddHangfire((sp, configuration) =>
+            {
+
+                SetupConnection(configureHangfire(sp, configuration
                 .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
                 .UseSimpleAssemblyNameTypeSerializer()
-                .UseRecommendedSerializerSettings()), sp.GetRequiredService<IConfiguration>())
-                );
+                .UseRecommendedSerializerSettings()), sp.GetRequiredService<IConfiguration>());
+               
+             
+                configuration.UseFilter(new HangfireWorkflowManifestJobFilter(sp.GetService<IWorkflowAccessor>()));
+            });
 
-
-            services.AddHangfireServer();
+            if(withJobServer)
+                services.AddHangfireServer();
 
             return builder;
         }

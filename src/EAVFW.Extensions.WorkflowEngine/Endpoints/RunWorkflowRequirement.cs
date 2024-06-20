@@ -1,14 +1,14 @@
-﻿using EAVFramework.Endpoints;
+using EAVFramework.Endpoints;
 using EAVFramework.Validation;
 using Microsoft.AspNetCore.Authorization;
 
-namespace Microsoft.Extensions.DependencyInjection
+namespace EAVFW.Extensions.WorkflowEngine.Endpoints
 {
     public class RunWorkflowRequirement : IAuthorizationRequirement, IAuthorizationRequirementError
     {
         public string WorkflowName { get; }
 
-        public RunWorkflowRequirement(string workflowName) 
+        public RunWorkflowRequirement(string workflowName)
         {
             WorkflowName = workflowName;
         }

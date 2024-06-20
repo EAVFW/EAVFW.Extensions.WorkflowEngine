@@ -9,6 +9,9 @@ using WorkflowEngine.Core;
 
 namespace EAVFW.Extensions.WorkflowEngine.Models
 {
+
+    
+
     public enum WorkflowStateStatus
     {
         [EnumMember(Value = "Running")]

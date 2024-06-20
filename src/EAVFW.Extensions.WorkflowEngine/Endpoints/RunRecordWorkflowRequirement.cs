@@ -1,8 +1,8 @@
-﻿using EAVFramework.Endpoints;
+using EAVFramework.Endpoints;
 using EAVFramework.Validation;
 using Microsoft.AspNetCore.Authorization;
 
-namespace Microsoft.Extensions.DependencyInjection
+namespace EAVFW.Extensions.WorkflowEngine.Endpoints
 {
     public class RunRecordWorkflowRequirement : IAuthorizationRequirement, IAuthorizationRequirementError
     {
@@ -10,14 +10,14 @@ namespace Microsoft.Extensions.DependencyInjection
         public string WorkflowName { get; }
 
         public string EntityCollectionSchemaName { get; }
-        public RunRecordWorkflowRequirement(string entityName, string recordId, string workflowname) 
+        public RunRecordWorkflowRequirement(string entityName, string recordId, string workflowname)
         {
             EntityCollectionSchemaName = entityName;
             RecordId = recordId;
             WorkflowName = workflowname;
         }
 
-       
+
 
         public ValidationError ToError()
         {

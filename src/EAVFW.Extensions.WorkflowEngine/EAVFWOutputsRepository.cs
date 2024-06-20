@@ -113,7 +113,7 @@ namespace EAVFW.Extensions.WorkflowEngine
 
         }
 
-        private static ActionState GetOrCreateStateObject(string key, WorkflowState run, bool remove=false)
+        private static ActionState GetOrCreateStateObject(string key, WorkflowState run)
         {
             var actions = run.Actions;// run["actions"];
 
@@ -135,11 +135,7 @@ namespace EAVFW.Extensions.WorkflowEngine
                 actions[key] = new ActionState();
             }
             var obj = actions[key]; 
-
-            if (remove)
-            {
-                actions.Remove(key);
-            }
+ 
             return obj;
         }
         private async Task SaveState(Guid runId, WorkflowState state)
@@ -288,13 +284,14 @@ namespace EAVFW.Extensions.WorkflowEngine
         {
             var run = await GetOrCreateRun(context);
 
-            var obj = GetOrCreateStateObject(action.Key, run,true);
+            var obj = GetOrCreateStateObject(action.Key, run);
 
             var body = obj.Items;
             if (body == null)
                 obj.Items = body = new List<Dictionary<string,ActionState>>();
 
             var actions = obj.Actions;
+            obj.Actions = new Dictionary<string, ActionState>();
           //  actions.Parent.Remove(); 
             body.Add(actions);
 
