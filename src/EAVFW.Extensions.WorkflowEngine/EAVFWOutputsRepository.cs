@@ -66,7 +66,12 @@ namespace EAVFW.Extensions.WorkflowEngine
         private readonly EAVDBContext<TContext> _eAVDBContext;
         private JsonSerializerSettings CreateSerializerSettings()
         {
-            var settings = JsonConvert.DefaultSettings();
+            var settings =  JsonConvert.DefaultSettings?.Invoke() ?? new JsonSerializerSettings
+            {
+                DateFormatHandling = Newtonsoft.Json.DateFormatHandling.IsoDateFormat,
+                DateTimeZoneHandling = Newtonsoft.Json.DateTimeZoneHandling.Utc,
+                DateParseHandling = Newtonsoft.Json.DateParseHandling.DateTimeOffset
+            };
             settings.NullValueHandling = NullValueHandling.Ignore;
             settings.Converters.Add(new DictionaryIgnoreNullValueConverter());
             return settings;

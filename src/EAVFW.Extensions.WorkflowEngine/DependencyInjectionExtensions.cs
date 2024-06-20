@@ -377,7 +377,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 .UseRecommendedSerializerSettings()), sp.GetRequiredService<IConfiguration>());
                
              
-                configuration.UseFilter(new HangfireWorkflowManifestJobFilter(sp.GetService<IWorkflowAccessor>()));
+                .UseFilter(sp.GetService<HangfireWorkflowManifestJobFilter>());
             });
 
             if(withJobServer)
