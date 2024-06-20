@@ -371,10 +371,11 @@ namespace Microsoft.Extensions.DependencyInjection
                 SetupConnection(configureHangfire(sp, configuration
                 .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
                 .UseSimpleAssemblyNameTypeSerializer()
-                .UseRecommendedSerializerSettings()), sp.GetRequiredService<IConfiguration>());
+                .UseRecommendedSerializerSettings()
+                .UseFilter(sp.GetService<HangfireWorkflowManifestJobFilter>())), sp.GetRequiredService<IConfiguration>());
                
              
-                .UseFilter(sp.GetService<HangfireWorkflowManifestJobFilter>());
+                
             });
 
             if(withJobServer)
