@@ -58,4 +58,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GIT_AUTHOR_NAME: pksorensen
           GIT_AUTHOR_EMAIL: poul@kjeldager.com
-        run: npx semantic-release@23.1.1
+        run: npx semantic-release
