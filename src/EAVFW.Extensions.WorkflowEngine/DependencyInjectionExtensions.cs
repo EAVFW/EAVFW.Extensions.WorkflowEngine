@@ -6,7 +6,7 @@ using EAVFramework.Endpoints.Results;
 using EAVFramework.Extensions;
 using EAVFramework.Plugins;
 using EAVFramework.Shared;
-using EAVFW.Extensions.Configuration.Forms;
+using EAVFW.Extensions.Configuration.RJSF;
 using EAVFW.Extensions.WorkflowEngine;
 using EAVFW.Extensions.WorkflowEngine.Endpoints;
 using EAVFW.Extensions.WorkflowEngine.Models;
@@ -107,7 +107,7 @@ namespace Microsoft.Extensions.DependencyInjection
                                .GetGenericArguments()
                                .First();
 
-                        var form = JsonSchemaForm.FromType(t).Build();
+                        var form = SchemaBuilder.FromType(t).Build();
 
                         await httpContext.Response.WriteJsonAsync(form);
                     }
