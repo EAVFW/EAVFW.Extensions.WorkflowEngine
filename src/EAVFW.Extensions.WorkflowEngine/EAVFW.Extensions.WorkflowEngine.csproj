@@ -25,16 +25,10 @@
 		
 		<PackageReference Include="Hangfire.AspNetCore" Version="1.8.14" />
 		<PackageReference Include="Hangfire.SqlServer" Version="1.8.14" />
+ <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="8.0.0" />        
 		
 	</ItemGroup>
-
-    <ItemGroup Condition="'$(TargetFramework)'=='net6.0'">
-        <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="6.0.0" />
-    </ItemGroup>
-    <ItemGroup Condition="'$(TargetFramework)'=='net8.0'">
-        <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="8.0.0" />
-    </ItemGroup>
-
+ 
     <ItemGroup Condition="$(UseEAVFromNuget) == 'false'">
         <ProjectReference Include="$(LocalExternalpath)/WorkflowEngine/src/WorkflowEngine.Hangfire/WorkflowEngine.Hangfire.csproj" />
         <ProjectReference Include="$(LocalExternalpath)/EAVFW.Extensions.Documents/src/EAVFW.Extensions.Documents/EAVFW.Extensions.Documents.csproj" />
@@ -42,7 +36,7 @@
         <ProjectReference Include="$(LocalEAVFrameworkPath)\src\EAVFramework.csproj" />
     </ItemGroup>
     <ItemGroup Condition="$(UseEAVFromNuget) != 'false'">
-        <PackageReference Include="Delegate.WorkflowEngine.Hangfire" Version="3.2.1" />
+        <PackageReference Include="Delegate.WorkflowEngine.Hangfire" Version="3.2.2" />
         <PackageReference Include="EAVFW.Extensions.Documents" Version="3.1.0" />
         <PackageReference Include="EAVFramework" Version="$(EAVFrameworkVersion)" />
         <PackageReference Include="EAVFW.Extensions.Configuration" Version="2.2.0" />
