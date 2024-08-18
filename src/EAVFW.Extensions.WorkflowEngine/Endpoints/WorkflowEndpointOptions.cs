@@ -1,3 +1,7 @@
+using EAVFramework.Endpoints;
+using System;
+using System.Threading.Tasks;
+
 namespace EAVFW.Extensions.WorkflowEngine.Endpoints
 {
     public class WorkflowEndpointOptions
@@ -6,5 +10,10 @@ namespace EAVFW.Extensions.WorkflowEngine.Endpoints
         public bool IncludeStartWorkflow { get; set; } = true;
         public bool IncludeWorkflowState { get; set; } = true;
         public bool IncludeWorkflowMetadata { get; set; } = true;
+
+        public string QueueName { get; set; } = "default";
+
+        public Func<EAVDBContext,Guid, IWorkflowRun> RunFactory { get; set; }
+        public string WorkflowEntityName { get;  set; }
     }
 }

@@ -28,6 +28,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using WorkflowEngine;
@@ -47,10 +48,22 @@ namespace Microsoft.Extensions.DependencyInjection
     }
     public static class DependencyInjectionExtensions
     {
-        public static IEndpointRouteBuilder MapWorkFlowEndpoints<TContext, TWorkflowRun>(
+        public static IEndpointRouteBuilder MapWorkFlowEndpoints<TContext,TWorkflowRun>(
+           this IEndpointRouteBuilder endpoints)
+           where TContext : DynamicContext
+             where TWorkflowRun : DynamicEntity, IWorkflowRun, new()
+        {
+
+            var options = endpoints.ServiceProvider.GetRequiredService<IOptions<WorkflowEndpointOptions>>();
+            options.Value.RunFactory = (context,id) => new TWorkflowRun { Id = id } ;
+            options.Value.WorkflowEntityName = typeof(TWorkflowRun).GetCustomAttribute<EntityAttribute>().CollectionSchemaName;
+            return endpoints.MapWorkFlowEndpoints<TContext>();
+            
+        }
+        public static IEndpointRouteBuilder MapWorkFlowEndpoints<TContext>(
             this IEndpointRouteBuilder endpoints)
             where TContext : DynamicContext
-            where TWorkflowRun : DynamicEntity, IWorkflowRun, new()
+           // where TWorkflowRun : DynamicEntity, IWorkflowRun, new()
         {
             var options = endpoints.ServiceProvider.GetRequiredService<IOptions<WorkflowEndpointOptions>>();
             
@@ -158,12 +171,13 @@ namespace Microsoft.Extensions.DependencyInjection
                         return;
                     }
                     var context = httpContext.RequestServices.GetRequiredService<EAVDBContext<TContext>>();
-                    context.Add(new TWorkflowRun() { Id = trigger.RunId });
+                  //  var run = Activator.CreateInstance(context.Context.get)
+                    context.Add(  options.Value.RunFactory(context,trigger.RunId));
 
                     await context.SaveChangesAsync(httpContext.User);
 
                     var backgroundJobClient = httpContext.RequestServices.GetRequiredService<IBackgroundJobClient>();
-                    var job = backgroundJobClient.Enqueue<IHangfireWorkflowExecutor>(
+                    var job = backgroundJobClient.Enqueue<IHangfireWorkflowExecutor>(options.Value.QueueName,
                         executor => executor.TriggerAsync(trigger,null));
 
 
@@ -218,11 +232,11 @@ namespace Microsoft.Extensions.DependencyInjection
 
                     var trigger = await BuildTrigger(workflows, workflowname, httpcontext.User?.FindFirstValue("sub"), inputs);
 
-                    context.Add(new TWorkflowRun() { Id=trigger.RunId });
+                    context.Add(options.Value.RunFactory(context,trigger.RunId));
 
                     await context.SaveChangesAsync(httpcontext.User);
 
-                    var job = backgroundJobClient.Enqueue<IHangfireWorkflowExecutor>(
+                    var job = backgroundJobClient.Enqueue<IHangfireWorkflowExecutor>(options.Value.QueueName,
                         (executor) => executor.TriggerAsync(trigger,null));
 
                     await httpcontext.Response.WriteJsonAsync(new { id = trigger.RunId, job = job });
@@ -232,16 +246,16 @@ namespace Microsoft.Extensions.DependencyInjection
             if (options.Value.IncludeWorkflowState)
             {
                 endpoints.MapGet("/api/workflowruns/{workflowRunId}/status", async context =>
-                    await ApiWorkflowsEndpoint<TContext, TWorkflowRun>(context, true));
+                    await ApiWorkflowsEndpoint<TContext>(context, options, true));
 
                 endpoints.MapGet("/api/workflowruns/{workflowRunId}",
-                    async context => await ApiWorkflowsEndpoint<TContext, TWorkflowRun>(context));
+                    async context => await ApiWorkflowsEndpoint<TContext>(context,options));
 
                 endpoints.MapGet("/api/workflows/{workflowId}/runs/{workflowRunId}",
-                    async context => await ApiWorkflowsEndpoint<TContext, TWorkflowRun>(context));
+                    async context => await ApiWorkflowsEndpoint<TContext>(context, options));
 
                 endpoints.MapGet("/api/workflows/{workflowId}/runs/{workflowRunId}/status",
-                   async context => await ApiWorkflowsEndpoint<TContext, TWorkflowRun>(context,true));
+                   async context => await ApiWorkflowsEndpoint<TContext>(context,options,true));
 
 
             }
@@ -249,8 +263,8 @@ namespace Microsoft.Extensions.DependencyInjection
             return endpoints;
         }
 
-        private static async Task ApiWorkflowsEndpoint<TContext, TWorkflowRun>(HttpContext context, bool statusOnly = false) where TContext : DynamicContext
-            where TWorkflowRun : DynamicEntity, IWorkflowRun
+        private static async Task ApiWorkflowsEndpoint<TContext>(HttpContext context, IOptions<WorkflowEndpointOptions> options, bool statusOnly = false) where TContext : DynamicContext
+          //  where TWorkflowRun : DynamicEntity, IWorkflowRun
         {
             var routeJobId = context.GetRouteValue("workflowRunId") as string;
             if (!Guid.TryParse(routeJobId, out var jobId))
@@ -262,8 +276,8 @@ namespace Microsoft.Extensions.DependencyInjection
 
             var db = context.RequestServices.GetRequiredService<EAVDBContext<TContext>>();
 
-            var workflowRun = await db.Set<TWorkflowRun>().FindAsync(jobId);
-
+            var workflowRunEntry = await db.FindAsync(options.Value.WorkflowEntityName?? "WorkflowRuns",jobId);
+            var workflowRun = workflowRunEntry?.Entity as IWorkflowRun;
             if (workflowRun == null)
             {
                 await new NotFoundResult().ExecuteAsync(context);
@@ -332,21 +346,48 @@ namespace Microsoft.Extensions.DependencyInjection
                 NullValueHandling= NullValueHandling.Ignore });
             return Task.FromResult(serializer.Deserialize<WorkflowState>(tinyStream));
         }
-        
-        
 
 
         public static IEAVFrameworkBuilder AddWorkFlowEngine<TContext, TWorkflowRun>(
-            this IEAVFrameworkBuilder builder,
-            string workflowContextPrincipalId, 
-            Func<IServiceProvider,IGlobalConfiguration, IGlobalConfiguration> configureHangfire = null, bool withJobServer=true)
-          where TContext : DynamicContext
-          where TWorkflowRun : DynamicEntity, IWorkflowRun, new()
+           this IEAVFrameworkBuilder builder,
+           string workflowContextPrincipalId,
+           Func<IServiceProvider, IGlobalConfiguration, IGlobalConfiguration> configureHangfire = null, bool withJobServer = true)
+         where TContext : DynamicContext
+         where TWorkflowRun : DynamicEntity, IWorkflowRun, new()
         {
             var services = builder.Services;
 
+         
+
+            builder.AddWorkFlowEngine<TContext>(workflowContextPrincipalId,
+                typeof(TWorkflowRun).GetCustomAttribute<EntityAttribute>().CollectionSchemaName,
+                (ctx,id) =>  new TWorkflowRun { Id = id },
+                configureHangfire, withJobServer); 
+            services.AddScoped<IEAVFWOutputsRepositoryContextFactory, DefaultEAVFWOutputsRepositoryContextFactory<TContext, TWorkflowRun>>();
+
+            return builder;
+        }
+
+        public static IEAVFrameworkBuilder AddWorkFlowEngine<TContext>(
+            this IEAVFrameworkBuilder builder,
+            string workflowContextPrincipalId, 
+            string workflowRunEntityName,
+            Func<EAVDBContext, Guid, IWorkflowRun> runFactory,
+            Func<IServiceProvider,IGlobalConfiguration, IGlobalConfiguration> configureHangfire = null, bool withJobServer=true)
+          where TContext : DynamicContext
+           
+        {
+            var services = builder.Services;
+
+            services.Configure<WorkflowEndpointOptions>(options =>
+            {
+                options.WorkflowEntityName = workflowRunEntityName;
+                options.RunFactory = runFactory;
+            });
+
             services.AddExpressionEngine();
-            services.AddWorkflowEngine<EAVFWOutputsRepository<TContext,TWorkflowRun>>();
+            services.AddWorkflowEngine<EAVFWOutputsRepository<TContext>>();
+            
             services.AddOptions<WorkflowEndpointOptions>().BindConfiguration("EAVFramework:WorkflowEngine");
             
             builder.Services.AddOptions<EAVFWOutputsRepositoryOptions>()
@@ -379,7 +420,12 @@ namespace Microsoft.Extensions.DependencyInjection
             });
 
             if(withJobServer)
-                services.AddHangfireServer();
+                services.AddHangfireServer((sp,options) =>
+                {
+                     options.Queues = new[] { sp.GetRequiredService<IOptions<WorkflowEndpointOptions>>().Value?.QueueName ?? "default" };
+                    
+                     
+                });
 
             return builder;
         }

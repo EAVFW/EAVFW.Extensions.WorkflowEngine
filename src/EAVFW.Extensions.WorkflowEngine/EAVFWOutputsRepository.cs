@@ -58,12 +58,64 @@ namespace EAVFW.Extensions.WorkflowEngine
         }
     }
 
-    public class EAVFWOutputsRepository<TContext, TWorkflowRun> : IOutputsRepository, IDisposable
+    public interface IEAVFWOutputsRepositoryContextFactory
+    {
+       
+        Task SaveAsync(Guid runId, byte[] bytes, ClaimsPrincipal principal);
+        Task<byte[]> LoadAsync(Guid runId);
+    }
+    public class DefaultEAVFWOutputsRepositoryContextFactory<TContext, TWorkflowRun> : IEAVFWOutputsRepositoryContextFactory, IDisposable
         where TContext : DynamicContext
-        where TWorkflowRun : DynamicEntity, IWorkflowRun, new()
+          where TWorkflowRun : DynamicEntity, IWorkflowRun, new()
     {
         private readonly IServiceScope _scope;
-        private readonly EAVDBContext<TContext> _eAVDBContext;
+        private readonly EAVDBContext<TContext> _db;
+
+        public DefaultEAVFWOutputsRepositoryContextFactory(IServiceScopeFactory scopeFactory)
+        {
+            _scope = scopeFactory.CreateScope();
+            _db = _scope.ServiceProvider.GetRequiredService<EAVDBContext<TContext>>();
+        }
+
+   
+
+        public void Dispose()
+        {
+            _scope.Dispose();
+        }
+
+        public async Task<byte[]> LoadAsync(Guid runId)
+        {
+            
+            var run = await _db.Set<TWorkflowRun>().FindAsync(runId);
+            return run?.State;
+        }
+
+        public async Task SaveAsync(Guid runId, byte[] bytes, ClaimsPrincipal principal)
+        {
+            
+            var run = await _db.Set<TWorkflowRun>().FindAsync(runId);
+            if (run == null)
+            {
+                run = new TWorkflowRun { Id = runId, State = bytes };
+                _db.Set<TWorkflowRun>().Add(run);
+            }
+            else
+            {
+                run.State = bytes;
+                _db.Set<TWorkflowRun>().Update(run);
+            }
+            await _db.SaveChangesAsync(principal);
+        }
+    }
+     
+
+    public class EAVFWOutputsRepository<TContext> : IOutputsRepository
+        where TContext : DynamicContext
+    //    where TWorkflowRun : DynamicEntity, IWorkflowRun, new()
+    {
+     //   private readonly IServiceScope _scope;
+       // private readonly EAVDBContext<TContext> _eAVDBContext;
         private JsonSerializerSettings CreateSerializerSettings()
         {
             var settings =  JsonConvert.DefaultSettings?.Invoke() ?? new JsonSerializerSettings
@@ -80,18 +132,20 @@ namespace EAVFW.Extensions.WorkflowEngine
       
         private JsonSerializerSettings _serializerSettings;
         private JsonSerializer _serializer;
+        private readonly IEAVFWOutputsRepositoryContextFactory _factory;
 
         protected ClaimsPrincipal Principal { get; }
 
-        public EAVFWOutputsRepository(IServiceScopeFactory scopeFactory, IOptions<EAVFWOutputsRepositoryOptions> options)
+        public EAVFWOutputsRepository(IEAVFWOutputsRepositoryContextFactory factory , IOptions<EAVFWOutputsRepositoryOptions> options)
         {
-            _scope = scopeFactory.CreateScope(); 
+          //  _scope = scopeFactory.CreateScope(); 
             _serializerSettings = CreateSerializerSettings();
             _serializer = JsonSerializer.Create(_serializerSettings);
-            _eAVDBContext = _scope.ServiceProvider.GetRequiredService<EAVDBContext<TContext>>();
+            
             Principal = new ClaimsPrincipal(new ClaimsIdentity(new Claim[] {
                                    new Claim("sub",options.Value.IdenttyId)
                                 }, "eavfw"));
+            _factory = factory;
         }
         public async ValueTask AddScopeItem(IRunContext context, IWorkflow workflow, IAction action, IActionResult result)
         {
@@ -155,19 +209,20 @@ namespace EAVFW.Extensions.WorkflowEngine
             writer.Flush();
             tinyStream.Flush();
 
-            var run = await _eAVDBContext.Set<TWorkflowRun>().FindAsync(runId);
-
-            run.State = ms.ToArray();
-
-            _eAVDBContext.Set<TWorkflowRun>().Update(run);
-            await _eAVDBContext.SaveChangesAsync(Principal);
+            
+            await _factory.SaveAsync(runId, ms.ToArray(), Principal);
+           
+          
         }
 
         public async Task<WorkflowState> GetState(Guid runId)
         {
-            var run = await _eAVDBContext.Set<TWorkflowRun>().FindAsync(runId);
+           
+            
+            var data = await _factory.LoadAsync(runId);
+
             using var tinyStream = new JsonTextReader(
-                new StreamReader(new GZipStream(new MemoryStream(run.State), CompressionMode.Decompress)));
+                new StreamReader(new GZipStream(new MemoryStream(data), CompressionMode.Decompress)));
 
 
             return _serializer.Deserialize<WorkflowState>(tinyStream);
@@ -175,29 +230,31 @@ namespace EAVFW.Extensions.WorkflowEngine
 
         private async Task<WorkflowState> GetOrCreateRun(IRunContext context)
         {
-            var run = await _eAVDBContext.Set<TWorkflowRun>().FindAsync(context.RunId);
-            if (run == null)
+           
+
+            var data = await _factory.LoadAsync(context.RunId);
+
+            if (data == null)
             {
-                var (data, dataarr) = CreateState();
+                var (_data, dataarr) = CreateState();
 
-                run = new TWorkflowRun() { Id = context.RunId, State = dataarr };
-                _eAVDBContext.Set<TWorkflowRun>().Add(run);
-                await _eAVDBContext.SaveChangesAsync(Principal);
-
-                return data;
+                await _factory.SaveAsync(context.RunId, dataarr, Principal);
+                 
+                return _data;
             }
 
-            if (run.State == null)
+            if (data == null)
             {
-                var (data, dataarr) = CreateState();
-                run.State = dataarr;
-                await _eAVDBContext.SaveChangesAsync(Principal);
-                return data;
+                var (_data, dataarr) = CreateState();
+             
+                await _factory.SaveAsync(context.RunId, dataarr, Principal);
+             
+                return _data;
             }
 
             {
 
-                using var tinyStream = new JsonTextReader(new StreamReader(new GZipStream(new MemoryStream(run.State), CompressionMode.Decompress)));
+                using var tinyStream = new JsonTextReader(new StreamReader(new GZipStream(new MemoryStream(data), CompressionMode.Decompress)));
 
 
                 return _serializer.Deserialize<WorkflowState>(tinyStream);
@@ -360,9 +417,6 @@ namespace EAVFW.Extensions.WorkflowEngine
             await SaveState(context.RunId, run);
         }
 
-        public void Dispose()
-        {
-           _scope.Dispose(); 
-        }
+         
     }
 }
