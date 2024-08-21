@@ -163,7 +163,7 @@ namespace Microsoft.Extensions.DependencyInjection
                     
                     var inputs = new Dictionary<string, object> { ["data"] = record, ["payload"] = record };
 
-                    var trigger = await BuildTrigger(workflows, workflowName, httpContext.User?.FindFirstValue("sub"), inputs);
+                    var trigger = await BuildTrigger(workflows, workflowName, httpContext.User?.FindFirstValue("sub"), inputs, options.Value.QueueName);
                     
                     if (trigger == null)
                     {
@@ -177,7 +177,7 @@ namespace Microsoft.Extensions.DependencyInjection
                     await context.SaveChangesAsync(httpContext.User);
 
                     var backgroundJobClient = httpContext.RequestServices.GetRequiredService<IBackgroundJobClient>();
-                    var job = backgroundJobClient.Enqueue<IHangfireWorkflowExecutor>(options.Value.QueueName,
+                    var job = backgroundJobClient.Enqueue<IHangfireWorkflowExecutor>(trigger.Queue,
                         executor => executor.TriggerAsync(trigger,null));
 
 
@@ -230,13 +230,13 @@ namespace Microsoft.Extensions.DependencyInjection
 
                     var workflows = httpcontext.RequestServices.GetRequiredService<IEnumerable<IWorkflow>>();
 
-                    var trigger = await BuildTrigger(workflows, workflowname, httpcontext.User?.FindFirstValue("sub"), inputs);
+                    var trigger = await BuildTrigger(workflows, workflowname, httpcontext.User?.FindFirstValue("sub"), inputs, options.Value.QueueName);
 
                     context.Add(options.Value.RunFactory(context,trigger.RunId));
 
                     await context.SaveChangesAsync(httpcontext.User);
 
-                    var job = backgroundJobClient.Enqueue<IHangfireWorkflowExecutor>(options.Value.QueueName,
+                    var job = backgroundJobClient.Enqueue<IHangfireWorkflowExecutor>(trigger.Queue,
                         (executor) => executor.TriggerAsync(trigger,null));
 
                     await httpcontext.Response.WriteJsonAsync(new { id = trigger.RunId, job = job });
@@ -309,7 +309,8 @@ namespace Microsoft.Extensions.DependencyInjection
             IEnumerable<IWorkflow> workflows,
             string workflowName,
             string principalId,
-            Dictionary<string, object> inputs
+            Dictionary<string, object> inputs,
+            string queue
             )
         {
             var workflow = workflows.FirstOrDefault(n => string.Equals(n.Id.ToString(), workflowName, StringComparison.OrdinalIgnoreCase) || string.Equals(n.GetType().Name, workflowName, StringComparison.OrdinalIgnoreCase));
@@ -320,6 +321,7 @@ namespace Microsoft.Extensions.DependencyInjection
             
             var trigger = new TriggerContext
             {
+                Queue = queue ?? "default",
                 RunId = Guid.NewGuid(),
                 Workflow = workflow,
                 PrincipalId = principalId,
