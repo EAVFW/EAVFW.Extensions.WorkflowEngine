@@ -316,7 +316,7 @@ namespace Microsoft.Extensions.DependencyInjection
             var workflow = workflows.FirstOrDefault(n => string.Equals(n.Id.ToString(), workflowName, StringComparison.OrdinalIgnoreCase) || string.Equals(n.GetType().Name, workflowName, StringComparison.OrdinalIgnoreCase));
 
             if (workflow == null)
-                return null;
+                return Task.FromResult< TriggerContext>(null); ;
             
             
             var trigger = new TriggerContext
