@@ -2,6 +2,7 @@ using EAVFramework;
 using EAVFramework.Endpoints;
 using EAVFramework.Plugins;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Linq;
 using System.Reflection;
@@ -43,7 +44,7 @@ namespace EAVFW.Extensions.WorkflowEngine
         {
             var pluginContext = PluginContextFactory.CreateContext<TContext, T>(serviceProvider,context, entry, new System.Security.Claims.ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim("sub", IdentityId) }, "eavfw")));
 
-            var handler = serviceProvider.GetService(Handler) as IPlugin<TContext, T>;
+            var handler = (Handler.IsGenericType ? serviceProvider.GetDynamicService<TContext>(Handler)  : serviceProvider.GetService(Handler)) as IPlugin<TContext, T>;
             //TODO mix of context types;
             if (handler != null)
                 await handler.Execute(pluginContext);

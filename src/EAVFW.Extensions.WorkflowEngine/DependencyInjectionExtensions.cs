@@ -412,7 +412,7 @@ namespace Microsoft.Extensions.DependencyInjection
             {
 
                 SetupConnection(configureHangfire(sp, configuration
-                .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
+                .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
                 .UseSimpleAssemblyNameTypeSerializer()
                 .UseRecommendedSerializerSettings()
                 .UseFilter(sp.GetService<HangfireWorkflowManifestJobFilter>())), sp.GetRequiredService<IConfiguration>());
