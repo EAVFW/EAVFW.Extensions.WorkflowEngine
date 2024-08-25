@@ -1,4 +1,4 @@
-﻿using EAVFramework;
+using EAVFramework;
 using EAVFramework.Endpoints;
 using EAVFramework.Plugins;
 using EAVFramework.Shared;
@@ -37,7 +37,9 @@ namespace EAVFW.Extensions.WorkflowEngine
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<HangFirePluginJobRunner<TContext>> _logger;
 
-        public HangFirePluginJobRunner(IServiceProvider serviceProvider, ILogger<HangFirePluginJobRunner<TContext>> logger)
+        public HangFirePluginJobRunner(
+            IServiceProvider serviceProvider,
+            ILogger<HangFirePluginJobRunner<TContext>> logger)
         {
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
 
@@ -60,15 +62,16 @@ namespace EAVFW.Extensions.WorkflowEngine
                 try
                 {
                     _logger.LogInformation("Starting execution of async plugin");
-                    
 
+                    await data.Plugin.InitializePluginJobRunnerAsync(_serviceProvider, entityType);
+                    
                     var db = _serviceProvider.GetRequiredService<EAVDBContext<TContext>>();
                     
                     var entryTypeMetadata = db.Context.Model.FindEntityType(db.Context.GetEntityType(entityType).FullName);
                     var typedKeys= entryTypeMetadata.FindPrimaryKey().Properties.Select((p,i)=> ConvertType(keys.Values[i],p.ClrType)).ToArray();
                      
                     var entry = await db.FindAsync(entityType, typedKeys);
-                    var ctx = await data.ExecuteAsync(_serviceProvider, db, entry);
+                    var ctx = await data.ExecuteAsync(_serviceProvider, db, entry,data.Plugin.Operation);
 
                     
 

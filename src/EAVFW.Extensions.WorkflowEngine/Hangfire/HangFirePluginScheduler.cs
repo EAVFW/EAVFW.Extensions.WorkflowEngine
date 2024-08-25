@@ -49,10 +49,12 @@ namespace EAVFW.Extensions.WorkflowEngine
              */
 
             var asyncContext = await _contextFactory.CreateContextAsync();
-
+           
             asyncContext.IdentityId = identityid;
             asyncContext.Plugin = plugin;
-            asyncContext.Handler = plugin.Handler.IsGenericTypeDefinition ? _context.ResoveType(plugin.Handler) : plugin.Handler;
+        //    asyncContext.Handler = plugin.Handler.IsGenericTypeDefinition ?
+        //        _context.ResoveType(plugin.Handler, (typeof(DynamicEntity),entry.Metadata.ClrType)) : plugin.Handler;
+        asyncContext.Handler = plugin.Handler;
 
             var collectionSchemaName = entry.Entity.GetType().GetCustomAttribute<EntityAttribute>().CollectionSchemaName;
             var keys = entry.Metadata.FindPrimaryKey().Properties.Select(p => p.PropertyInfo.GetValue(entity)).ToArray();

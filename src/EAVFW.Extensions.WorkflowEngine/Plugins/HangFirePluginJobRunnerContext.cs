@@ -27,24 +27,25 @@ namespace EAVFW.Extensions.WorkflowEngine
         public string SchemaName { get; set; }
         public EntityPlugin Plugin { get;  set; }
 
-        public async Task<PluginContext> ExecuteAsync<TContext>(IServiceProvider serviceProvider, EAVDBContext<TContext> context, EntityEntry entry)
+        public async Task<PluginContext> ExecuteAsync<TContext>(IServiceProvider serviceProvider, EAVDBContext<TContext> context, EntityEntry entry, EntityPluginOperation operation)
          where TContext : DynamicContext
         {
             var executeTask = (Task<PluginContext>)ExecuteAsyncMethod
                 .MakeGenericMethod(typeof(TContext), entry.Entity.GetType())
-                .Invoke(this, new object[] { serviceProvider, context, entry });
+                .Invoke(this, new object[] { serviceProvider, context, entry,operation });
 
             return await executeTask;
 
         }
-        public async Task<PluginContext> ExecuteAsync<TContext, T>(IServiceProvider serviceProvider, EAVDBContext<TContext> context, EntityEntry entry)
+        public async Task<PluginContext> ExecuteAsync<TContext, T>(IServiceProvider serviceProvider, EAVDBContext<TContext> context, EntityEntry entry, EntityPluginOperation operation )
               where TContext : DynamicContext
         where T : DynamicEntity
 
         {
-            var pluginContext = PluginContextFactory.CreateContext<TContext, T>(serviceProvider,context, entry, new System.Security.Claims.ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim("sub", IdentityId) }, "eavfw")));
+            var pluginContext = PluginContextFactory.CreateContext<TContext, T>(serviceProvider,context,
+                entry, new System.Security.Claims.ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim("sub", IdentityId) }, "eavfw")),operation);
 
-            var handler = (Handler.IsGenericType ? serviceProvider.GetDynamicService<TContext>(Handler)  : serviceProvider.GetService(Handler)) as IPlugin<TContext, T>;
+            var handler = (Handler.IsGenericType ? serviceProvider.GetDynamicService<TContext>(Handler, (typeof(DynamicEntity),typeof(T)))  : serviceProvider.GetService(Handler)) as IPlugin<TContext, T>;
             //TODO mix of context types;
             if (handler != null)
                 await handler.Execute(pluginContext);
