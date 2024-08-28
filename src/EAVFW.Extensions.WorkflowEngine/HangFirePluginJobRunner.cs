@@ -2,6 +2,7 @@ using EAVFramework;
 using EAVFramework.Endpoints;
 using EAVFramework.Plugins;
 using EAVFramework.Shared;
+using EAVFW.Extensions.WorkflowEngine.Endpoints;
 using Hangfire;
 using Hangfire.Server;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -62,8 +63,9 @@ namespace EAVFW.Extensions.WorkflowEngine
                 try
                 {
                     _logger.LogInformation("Starting execution of async plugin");
+                    var options = _serviceProvider.GetRequiredService<IOptions<WorkflowEndpointOptions>>();
 
-                    await data.Plugin.InitializePluginJobRunnerAsync(_serviceProvider, entityType);
+                    await options.Value.InitializePluginJobRunnerAsync(_serviceProvider, entityType);
                     
                     var db = _serviceProvider.GetRequiredService<EAVDBContext<TContext>>();
                     

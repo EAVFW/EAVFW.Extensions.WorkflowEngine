@@ -15,5 +15,7 @@ namespace EAVFW.Extensions.WorkflowEngine.Endpoints
 
         public Func<EAVDBContext,Guid, IWorkflowRun> RunFactory { get; set; }
         public string WorkflowEntityName { get;  set; }
+
+        public Func<IServiceProvider, string, Task> InitializePluginJobRunnerAsync { get; set; } = (sp, entityType) => Task.CompletedTask;
     }
 }
