@@ -36,7 +36,7 @@
         <ProjectReference Include="$(LocalEAVFrameworkPath)\src\EAVFramework.csproj" />
     </ItemGroup>
     <ItemGroup Condition="$(UseEAVFromNuget) != 'false'">
-        <PackageReference Include="Delegate.WorkflowEngine.Hangfire" Version="3.2.5" />
+        <PackageReference Include="Delegate.WorkflowEngine.Hangfire" Version="3.2.6" />
         <PackageReference Include="EAVFW.Extensions.Documents" Version="3.1.0" />
         <PackageReference Include="EAVFramework" Version="$(EAVFrameworkVersion)" />
         <PackageReference Include="EAVFW.Extensions.Configuration" Version="2.2.1" />
