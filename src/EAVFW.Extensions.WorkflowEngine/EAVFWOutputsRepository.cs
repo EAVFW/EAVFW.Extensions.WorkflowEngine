@@ -1,6 +1,7 @@
 
 using EAVFramework;
 using EAVFramework.Endpoints;
+using EAVFramework.Services;
 using EAVFW.Extensions.WorkflowEngine.Models;
 using ExpressionEngine;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +15,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 using WorkflowEngine.Core;
 
@@ -66,15 +68,16 @@ namespace EAVFW.Extensions.WorkflowEngine
     }
     public class DefaultEAVFWOutputsRepositoryContextFactory<TContext, TWorkflowRun> : IEAVFWOutputsRepositoryContextFactory, IDisposable
         where TContext : DynamicContext
-          where TWorkflowRun : DynamicEntity, IWorkflowRun, new()
+        where TWorkflowRun : DynamicEntity, IWorkflowRun, new()
     {
         private readonly IServiceScope _scope;
-        private readonly EAVDBContext<TContext> _db;
+    //    private readonly EAVDBContext<TContext> _db;
+        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
         public DefaultEAVFWOutputsRepositoryContextFactory(IServiceScopeFactory scopeFactory)
         {
             _scope = scopeFactory.CreateScope();
-            _db = _scope.ServiceProvider.GetRequiredService<EAVDBContext<TContext>>();
+      //      _db = _scope.ServiceProvider.GetRequiredService<EAVDBContext<TContext>>();
         }
 
    
@@ -86,26 +89,44 @@ namespace EAVFW.Extensions.WorkflowEngine
 
         public async Task<byte[]> LoadAsync(Guid runId)
         {
-            
-            var run = await _db.Set<TWorkflowRun>().FindAsync(runId);
-            return run?.State;
+            await _semaphore.WaitAsync();
+            try
+            {
+                await _scope.ServiceProvider.GetRequiredService<IContextInitializer>().InitializeContextAsync();
+
+                var run = await _scope.ServiceProvider.GetRequiredService<EAVDBContext<TContext>>().Set<TWorkflowRun>().FindAsync(runId);
+                return run?.State;
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
         }
 
         public async Task SaveAsync(Guid runId, byte[] bytes, ClaimsPrincipal principal)
         {
-            
-            var run = await _db.Set<TWorkflowRun>().FindAsync(runId);
-            if (run == null)
+            await _semaphore.WaitAsync();
+            try
             {
-                run = new TWorkflowRun { Id = runId, State = bytes };
-                _db.Set<TWorkflowRun>().Add(run);
+                await _scope.ServiceProvider.GetRequiredService<IContextInitializer>().InitializeContextAsync();
+                var db = _scope.ServiceProvider.GetRequiredService<EAVDBContext<TContext>>();
+                var run = await db.Set<TWorkflowRun>().FindAsync(runId);
+                if (run == null)
+                {
+                    run = new TWorkflowRun { Id = runId, State = bytes };
+                    db.Set<TWorkflowRun>().Add(run);
+                }
+                else
+                {
+                    run.State = bytes;
+                    db.Set<TWorkflowRun>().Update(run);
+                }
+                await db.SaveChangesAsync(principal);
             }
-            else
+            finally
             {
-                run.State = bytes;
-                _db.Set<TWorkflowRun>().Update(run);
+                _semaphore.Release();
             }
-            await _db.SaveChangesAsync(principal);
         }
     }
      

@@ -9,6 +9,7 @@ using EAVFramework.Shared;
 using EAVFW.Extensions.Configuration.RJSF;
 using EAVFW.Extensions.WorkflowEngine;
 using EAVFW.Extensions.WorkflowEngine.Endpoints;
+using EAVFW.Extensions.WorkflowEngine.Expresions;
 using EAVFW.Extensions.WorkflowEngine.Models;
 using ExpressionEngine;
 using Hangfire;
@@ -33,6 +34,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using WorkflowEngine;
 using WorkflowEngine.Core;
+using WorkflowEngine.Core.Expressions;
 using JsonSerializer = Newtonsoft.Json.JsonSerializer;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -223,9 +225,9 @@ namespace Microsoft.Extensions.DependencyInjection
                     var inputs = new Dictionary<string, object>
                     {
                         ["entityName"] = entityName,
-                        ["recordId"] = recordId,
-                        ["data"] = record,
-                        ["payload"] = record
+                        ["recordId"] = recordId, 
+                        ["trigger"] = record["trigger"],
+                        ["payload"] = record["payload"] ?? record["values"]
                     };
 
                     var workflows = httpcontext.RequestServices.GetRequiredService<IEnumerable<IWorkflow>>();
@@ -309,7 +311,7 @@ namespace Microsoft.Extensions.DependencyInjection
             IEnumerable<IWorkflow> workflows,
             string workflowName,
             string principalId,
-            Dictionary<string, object> inputs,
+            object inputs,
             string queue
             )
         {
@@ -359,14 +361,14 @@ namespace Microsoft.Extensions.DependencyInjection
         {
             var services = builder.Services;
 
-         
+
 
             builder.AddWorkFlowEngine<TContext>(workflowContextPrincipalId,
                 typeof(TWorkflowRun).GetCustomAttribute<EntityAttribute>().CollectionSchemaName,
-                (ctx,id) =>  new TWorkflowRun { Id = id },
-                configureHangfire, withJobServer); 
-            services.AddScoped<IEAVFWOutputsRepositoryContextFactory, DefaultEAVFWOutputsRepositoryContextFactory<TContext, TWorkflowRun>>();
+                (ctx, id) => new TWorkflowRun { Id = id },
+                configureHangfire, withJobServer);
 
+            services.AddScoped<IEAVFWOutputsRepositoryContextFactory, DefaultEAVFWOutputsRepositoryContextFactory<TContext, TWorkflowRun>>();
             return builder;
         }
 
@@ -388,8 +390,12 @@ namespace Microsoft.Extensions.DependencyInjection
             });
 
             services.AddExpressionEngine();
+            services.RegisterScopedFunctionAlias<UrlSafeHashFunction>("urlSafeHash");
+            services.RegisterScopedFunctionAlias<UrlSafeBase64EncodeFunction>("urlSafeBase64Encode");
+
             services.AddWorkflowEngine<EAVFWOutputsRepository<TContext>>();
-            
+          //  services.AddDynamicScoped<TContext, IEAVFWOutputsRepositoryContextFactory>(typeof(DefaultEAVFWOutputsRepositoryContextFactory<,>));
+
             services.AddOptions<WorkflowEndpointOptions>().BindConfiguration("EAVFramework:WorkflowEngine");
             
             builder.Services.AddOptions<EAVFWOutputsRepositoryOptions>()
@@ -405,6 +411,7 @@ namespace Microsoft.Extensions.DependencyInjection
             
             
             services.AddTransient<IHangFirePluginSchedulerAsyncContextFactory, DefaultHangFirePluginSchedulerAsyncContextFactory>();
+            services.RegisterScopedFunctionAlias<TriggerPayloadFunction>("triggerPayload");
 
 
             configureHangfire = configureHangfire ?? NullOp;
