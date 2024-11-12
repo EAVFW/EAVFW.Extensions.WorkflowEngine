@@ -19,9 +19,9 @@ namespace EAVFW.Extensions.WorkflowEngine.Endpoints
 
 
 
-        public ValidationError ToError()
+        public AuthorizationError ToError()
         {
-            return new ValidationError
+            return new AuthorizationError
             {
                 Error = "No permission to run workflow",
                 Code = "NO_RUN_WORKFLOW_PERMISSION",
