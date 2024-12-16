@@ -45,7 +45,7 @@ namespace EAVFW.Extensions.WorkflowEngine
             var pluginContext = PluginContextFactory.CreateContext<TContext, T>(serviceProvider,context,
                 entry, new System.Security.Claims.ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim("sub", IdentityId) }, "eavfw")),operation);
 
-            var handler = (Handler.IsGenericType ? serviceProvider.GetDynamicService<TContext>(Handler, (typeof(DynamicEntity),typeof(T)))  : serviceProvider.GetService(Handler)) as IPlugin<TContext, T>;
+            var handler = (Handler.IsGenericTypeDefinition ? serviceProvider.GetDynamicService<TContext>(Handler, (typeof(DynamicEntity),typeof(T)))  : serviceProvider.GetService(Handler)) as IPlugin<TContext, T>;
             //TODO mix of context types;
             if (handler != null)
                 await handler.Execute(pluginContext);
