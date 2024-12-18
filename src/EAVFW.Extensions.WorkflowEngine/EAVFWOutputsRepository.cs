@@ -63,8 +63,48 @@ namespace EAVFW.Extensions.WorkflowEngine
     public interface IEAVFWOutputsRepositoryContextFactory
     {
        
-        Task SaveAsync(Guid runId, byte[] bytes, ClaimsPrincipal principal);
+        Task SaveAsync(Guid runId, WorkflowState state, byte[] bytes, ClaimsPrincipal principal);
         Task<byte[]> LoadAsync(Guid runId);
+    }
+
+    public interface IExtendedWorkflowRunPopulator
+    {
+        Task PopulateAsync(object run, WorkflowState state);
+    }
+
+
+    public class DefaultExtendedWorkflowRunPopulator<TContext, TWorkflowRun, TWorkflowRunStatus> : IExtendedWorkflowRunPopulator
+         where TContext : DynamicContext
+        where TWorkflowRun : DynamicEntity, IWorkflowRun, IWorkflowRunWithState<TWorkflowRunStatus>
+        where TWorkflowRunStatus : struct, IConvertible
+    {
+        public static TWorkflowRunStatus Running = (TWorkflowRunStatus) Enum.ToObject(typeof(TWorkflowRunStatus), 0);
+        public static TWorkflowRunStatus Succeded = (TWorkflowRunStatus) Enum.ToObject(typeof(TWorkflowRunStatus), 1);
+        public static TWorkflowRunStatus Failed = (TWorkflowRunStatus) Enum.ToObject(typeof(TWorkflowRunStatus), 2);
+        public Task PopulateAsync(object run, WorkflowState state)
+        {
+            if (run is TWorkflowRun exRun)
+            {
+                exRun.Status = state.Status switch {
+                    WorkflowStateStatus.Running => Running,
+                    WorkflowStateStatus.Succeded => Succeded,
+                    WorkflowStateStatus.Failed => Failed,
+                    _ => null
+                    };
+
+               if(state.Status == WorkflowStateStatus.Running)
+                {
+                    exRun.StartedOn??= DateTime.UtcNow;
+                }
+                else if (state.Status == WorkflowStateStatus.Succeded || state.Status == WorkflowStateStatus.Failed)
+                {
+                    exRun.CompletedOn??= DateTime.UtcNow;
+                }
+
+
+            }
+            return Task.CompletedTask;
+        }
     }
     public class DefaultEAVFWOutputsRepositoryContextFactory<TContext, TWorkflowRun> : IEAVFWOutputsRepositoryContextFactory, IDisposable
         where TContext : DynamicContext
@@ -103,7 +143,7 @@ namespace EAVFW.Extensions.WorkflowEngine
             }
         }
 
-        public async Task SaveAsync(Guid runId, byte[] bytes, ClaimsPrincipal principal)
+        public async Task SaveAsync(Guid runId, WorkflowState state, byte[] bytes, ClaimsPrincipal principal)
         {
             await _semaphore.WaitAsync();
             try
@@ -114,11 +154,21 @@ namespace EAVFW.Extensions.WorkflowEngine
                 if (run == null)
                 {
                     run = new TWorkflowRun { Id = runId, State = bytes };
+
+                    foreach(var populator in _scope.ServiceProvider.GetServices<IExtendedWorkflowRunPopulator>())
+                    {
+                        await populator.PopulateAsync(run, state);
+                    }
+
                     db.Set<TWorkflowRun>().Add(run);
                 }
                 else
                 {
                     run.State = bytes;
+                    foreach (var populator in _scope.ServiceProvider.GetServices<IExtendedWorkflowRunPopulator>())
+                    {
+                        await populator.PopulateAsync(run, state);
+                    }
                     db.Set<TWorkflowRun>().Update(run);
                 }
                 await db.SaveChangesAsync(principal);
@@ -231,7 +281,7 @@ namespace EAVFW.Extensions.WorkflowEngine
             tinyStream.Flush();
 
             
-            await _factory.SaveAsync(runId, ms.ToArray(), Principal);
+            await _factory.SaveAsync(runId,state, ms.ToArray(), Principal);
            
           
         }
@@ -259,7 +309,7 @@ namespace EAVFW.Extensions.WorkflowEngine
             {
                 var (_data, dataarr) = CreateState();
 
-                await _factory.SaveAsync(context.RunId, dataarr, Principal);
+                await _factory.SaveAsync(context.RunId,_data, dataarr, Principal);
                  
                 return _data;
             }
@@ -268,7 +318,7 @@ namespace EAVFW.Extensions.WorkflowEngine
             {
                 var (_data, dataarr) = CreateState();
              
-                await _factory.SaveAsync(context.RunId, dataarr, Principal);
+                await _factory.SaveAsync(context.RunId,_data, dataarr, Principal);
              
                 return _data;
             }

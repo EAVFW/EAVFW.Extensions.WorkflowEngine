@@ -248,16 +248,16 @@ namespace Microsoft.Extensions.DependencyInjection
             if (options.Value.IncludeWorkflowState)
             {
                 endpoints.MapGet("/api/workflowruns/{workflowRunId}/status", async context =>
-                    await ApiWorkflowsEndpoint<TContext>(context, options, true));
+                    await ApiWorkflowsEndpoint<TContext>(context, options, true)).WithMetadata(new AuthorizeAttribute("EAVAuthorizationPolicy"));
 
                 endpoints.MapGet("/api/workflowruns/{workflowRunId}",
-                    async context => await ApiWorkflowsEndpoint<TContext>(context,options));
+                    async context => await ApiWorkflowsEndpoint<TContext>(context,options)).WithMetadata(new AuthorizeAttribute("EAVAuthorizationPolicy"));
 
                 endpoints.MapGet("/api/workflows/{workflowId}/runs/{workflowRunId}",
-                    async context => await ApiWorkflowsEndpoint<TContext>(context, options));
+                    async context => await ApiWorkflowsEndpoint<TContext>(context, options)).WithMetadata(new AuthorizeAttribute("EAVAuthorizationPolicy"));
 
                 endpoints.MapGet("/api/workflows/{workflowId}/runs/{workflowRunId}/status",
-                   async context => await ApiWorkflowsEndpoint<TContext>(context,options,true));
+                   async context => await ApiWorkflowsEndpoint<TContext>(context,options,true)).WithMetadata(new AuthorizeAttribute("EAVAuthorizationPolicy"));
 
 
             }
@@ -352,6 +352,22 @@ namespace Microsoft.Extensions.DependencyInjection
         }
 
 
+
+        public static IEAVFrameworkBuilder AddWorkFlowEngine<TContext, TWorkflowRun, TWorkflowRunStatus>(
+          this IEAVFrameworkBuilder builder,
+          string workflowContextPrincipalId,
+          Func<IServiceProvider, IGlobalConfiguration, IGlobalConfiguration> configureHangfire = null, bool withJobServer = true)
+            where TContext : DynamicContext
+            where TWorkflowRun : DynamicEntity, IWorkflowRun,IWorkflowRunWithState<TWorkflowRunStatus>, new()
+            where TWorkflowRunStatus : struct, IConvertible 
+        {
+            var services = builder.Services;
+
+            services.AddScoped<IExtendedWorkflowRunPopulator, DefaultExtendedWorkflowRunPopulator<TContext, TWorkflowRun, TWorkflowRunStatus>>();
+
+            return builder.AddWorkFlowEngine<TContext,TWorkflowRun>(workflowContextPrincipalId, configureHangfire, withJobServer);
+        }
+
         public static IEAVFrameworkBuilder AddWorkFlowEngine<TContext, TWorkflowRun>(
            this IEAVFrameworkBuilder builder,
            string workflowContextPrincipalId,
@@ -360,9 +376,7 @@ namespace Microsoft.Extensions.DependencyInjection
          where TWorkflowRun : DynamicEntity, IWorkflowRun, new()
         {
             var services = builder.Services;
-
-
-
+             
             builder.AddWorkFlowEngine<TContext>(workflowContextPrincipalId,
                 typeof(TWorkflowRun).GetCustomAttribute<EntityAttribute>().CollectionSchemaName,
                 (ctx, id) => new TWorkflowRun { Id = id },
@@ -392,10 +406,9 @@ namespace Microsoft.Extensions.DependencyInjection
             services.AddExpressionEngine();
             services.RegisterScopedFunctionAlias<UrlSafeHashFunction>("urlSafeHash");
             services.RegisterScopedFunctionAlias<UrlSafeBase64EncodeFunction>("urlSafeBase64Encode");
-
+             
             services.AddWorkflowEngine<EAVFWOutputsRepository<TContext>>();
-          //  services.AddDynamicScoped<TContext, IEAVFWOutputsRepositoryContextFactory>(typeof(DefaultEAVFWOutputsRepositoryContextFactory<,>));
-
+         
             services.AddOptions<WorkflowEndpointOptions>().BindConfiguration("EAVFramework:WorkflowEngine");
             
             builder.Services.AddOptions<EAVFWOutputsRepositoryOptions>()

@@ -1,4 +1,4 @@
-﻿using EAVFramework.Shared;
+using EAVFramework.Shared;
 using EAVFW.Extensions.Documents;
 using System;
 
@@ -10,6 +10,20 @@ namespace EAVFW.Extensions.WorkflowEngine
         Byte[] State { get; set; }
         Guid Id { get; set; }
     }
+
+    [EntityInterface(EntityKey = "Workflow Run")]
+    [ConstraintMapping(EntityKey = "Workflow Run", AttributeKey = "Status", ConstraintName = nameof(TWorkflowRunStatus))]
+
+    public interface IWorkflowRunWithState<TWorkflowRunStatus>
+        where TWorkflowRunStatus : struct, IConvertible
+    {
+        
+
+        DateTime? StartedOn { get; set; }
+        DateTime? CompletedOn { get; set; }
+        TWorkflowRunStatus? Status { get; set; }
+    }
+
 
     [EntityInterface(EntityKey = "Workflow")]
     public interface IWorkflow<T> where T : IDocumentEntity
